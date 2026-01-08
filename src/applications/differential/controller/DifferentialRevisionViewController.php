@@ -586,6 +586,36 @@ final class DifferentialRevisionViewController
           ->appendChild($stack_table));
     }
 
+    // Keyboard shortcuts for stack navigation: [ for prev, ] for next
+    $parent_type = DifferentialRevisionDependsOnRevisionEdgeType::EDGECONST;
+    $child_type = DifferentialRevisionDependedOnByRevisionEdgeType::EDGECONST;
+
+    $edge_query = id(new PhabricatorEdgeQuery())
+      ->withSourcePHIDs(array($revision->getPHID()))
+      ->withEdgeTypes(array($parent_type, $child_type));
+    $edge_query->execute();
+
+    $parent_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($parent_type));
+    $child_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($child_type));
+
+    if ($parent_phids || $child_phids) {
+      $handles = $viewer->loadHandles(
+        array_merge($parent_phids, $child_phids));
+
+      $pager_config = array();
+      if ($parent_phids) {
+        $pager_config['prev'] = $handles[head($parent_phids)]->getURI();
+      }
+      if ($child_phids) {
+        $pager_config['next'] = $handles[head($child_phids)]->getURI();
+      }
+      Javelin::initBehavior('phabricator-keyboard-pager', $pager_config);
+    }
+
     if ($other_view) {
       $tab_group->addTab(
         id(new PHUITabView())
@@ -769,6 +799,44 @@ final class DifferentialRevisionViewController
     $viewer = $this->getViewer();
     $properties = id(new PHUIPropertyListView())
       ->setViewer($viewer);
+
+    // Add Depends On / Dependencies fields at the top
+    $parent_type = DifferentialRevisionDependsOnRevisionEdgeType::EDGECONST;
+    $child_type = DifferentialRevisionDependedOnByRevisionEdgeType::EDGECONST;
+
+    $edge_query = id(new PhabricatorEdgeQuery())
+      ->withSourcePHIDs(array($revision->getPHID()))
+      ->withEdgeTypes(array($parent_type, $child_type));
+    $edge_query->execute();
+
+    $parent_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($parent_type));
+    $child_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($child_type));
+
+    if ($child_phids) {
+      $handles = $viewer->loadHandles($child_phids);
+      $properties->addProperty(
+        pht('Dependencies'),
+        $handles->renderList());
+    } elseif ($parent_phids) {
+      $properties->addProperty(
+        pht('Dependencies'),
+        pht('None'));
+    }
+
+    if ($parent_phids) {
+      $handles = $viewer->loadHandles($parent_phids);
+      $properties->addProperty(
+        pht('Depends On'),
+        $handles->renderList());
+    } elseif ($child_phids) {
+      $properties->addProperty(
+        pht('Depends On'),
+        pht('None'));
+    }
 
     if ($custom_fields) {
       $custom_fields->appendFieldsToPropertyList(

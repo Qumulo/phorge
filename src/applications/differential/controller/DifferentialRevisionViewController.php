@@ -561,28 +561,10 @@ final class DifferentialRevisionViewController
 
       $stack_table = $stack_graph->newGraphTable();
 
-      $parent_type = DifferentialRevisionDependsOnRevisionEdgeType::EDGECONST;
-      $reachable = $stack_graph->getReachableObjects($parent_type);
-
-      foreach ($reachable as $key => $reachable_revision) {
-        if ($reachable_revision->isClosed()) {
-          unset($reachable[$key]);
-        }
-      }
-
-      if ($reachable) {
-        $stack_name = pht('Stack (%s Open)', phutil_count($reachable));
-        $stack_color = PHUIListItemView::STATUS_FAIL;
-      } else {
-        $stack_name = pht('Stack');
-        $stack_color = null;
-      }
-
       $tab_group->addTab(
         id(new PHUITabView())
-          ->setName($stack_name)
+          ->setName(pht('Stack'))
           ->setKey('stack')
-          ->setColor($stack_color)
           ->appendChild($stack_table));
     }
 

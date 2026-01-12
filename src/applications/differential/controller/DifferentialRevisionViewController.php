@@ -522,6 +522,12 @@ final class DifferentialRevisionViewController
 
     $tab_group->addTab(
       id(new PHUITabView())
+        ->setName(pht('Timeline'))
+        ->setKey('timeline')
+        ->appendChild($timeline));
+
+    $tab_group->addTab(
+      id(new PHUITabView())
         ->setName(pht('History'))
         ->setKey('history')
         ->appendChild($history));
@@ -606,6 +612,8 @@ final class DifferentialRevisionViewController
           ->appendChild($other_view));
     }
 
+    $tab_group->selectTab('timeline');
+
     $view_button = id(new PHUIButtonView())
       ->setTag('a')
       ->setText(pht('Changeset List'))
@@ -647,7 +655,6 @@ final class DifferentialRevisionViewController
       $footer[] = array(
         $anchor,
         $warnings,
-        $tab_view,
         $changeset_view,
       );
     }
@@ -689,14 +696,14 @@ final class DifferentialRevisionViewController
       ->setHeader($header)
       ->setSubheader($subheader)
       ->setCurtain($curtain)
+      ->setSideColumn($diff_detail_box)
       ->setMainColumn(
         array(
           $operations_box,
           $info_view,
           $details,
-          $diff_detail_box,
           $unit_box,
-          $timeline,
+          $tab_view,
           $signature_message,
         ))
       ->setFooter($footer);

@@ -150,16 +150,6 @@ final class DifferentialRevisionListView extends AphrontView {
       $author_handle = $handles[$revision->getAuthorPHID()];
       $item->addByline(pht('Author: %s', $author_handle->renderLink()));
 
-      $unlanded = idx($this->unlandedDependencies, $phid);
-      if ($unlanded) {
-        $item->addAttribute(
-          array(
-            id(new PHUIIconView())->setIcon('fa-chain-broken', 'red'),
-            ' ',
-            pht('Open Dependencies'),
-          ));
-      }
-
       $more = null;
       if ($reviewer_more[$key]) {
         $more = pht(', ...');

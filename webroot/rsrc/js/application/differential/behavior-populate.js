@@ -69,6 +69,9 @@ JX.behavior('differential-populate', function(config, statics) {
     var formation_node = JX.$(config.formationViewID);
     var formation_view = new JX.PHUIXFormationView(formation_node);
     changeset_list.setFormationView(formation_view);
+    if (config.stackView) {
+      changeset_list.setStackView(config.stackView);
+    }
     formation_view.start();
   }
 

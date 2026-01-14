@@ -25,6 +25,7 @@ final class DifferentialChangesetListView extends AphrontView {
   private $title;
   private $parser;
   private $formationView;
+  private $stackView;
 
   public function setParser(DifferentialChangesetParser $parser) {
     $this->parser = $parser;
@@ -156,6 +157,15 @@ final class DifferentialChangesetListView extends AphrontView {
     return $this->formationView;
   }
 
+  public function setStackView($stack_view) {
+    $this->stackView = $stack_view;
+    return $this;
+  }
+
+  public function getStackView() {
+    return $this->stackView;
+  }
+
   public function render() {
     $viewer = $this->getViewer();
 
@@ -249,11 +259,24 @@ final class DifferentialChangesetListView extends AphrontView {
       $formation_id = $formation_view->getID();
     }
 
+    $stack_view = $this->getStackView();
+    $stack_view_html = null;
+    if ($stack_view) {
+      $stack_view_html = phutil_tag(
+        'div',
+        array(
+          'class' => 'diff-tree-stack',
+        ),
+        $stack_view);
+      $stack_view_html = hsprintf('%s', $stack_view_html);
+    }
+
     $this->initBehavior(
       'differential-populate',
       array(
       'changesetViewIDs' => $ids,
       'formationViewID' => $formation_id,
+      'stackView' => $stack_view_html,
       'inlineURI' => $this->inlineURI,
       'inlineListURI' => $this->inlineListURI,
       'isStandalone' => $this->getIsStandalone(),

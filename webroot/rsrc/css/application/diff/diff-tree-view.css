@@ -101,3 +101,42 @@
   color: {$lightgreytext};
   opacity: 0.75;
 }
+
+/* Compact Stack View in Sidebar */
+.diff-tree-stack {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid {$lightblueborder};
+}
+
+.diff-tree-stack .object-graph-table {
+  font-size: 12px;
+  width: 100%;
+}
+
+.diff-tree-stack .object-graph-table th {
+  text-align: left;
+  font-weight: bold;
+  color: {$darkbluetext};
+  padding: 2px 4px 6px 4px;
+}
+
+.diff-tree-stack .object-graph-table td {
+  padding: 2px 4px;
+}
+
+.diff-tree-stack .object-graph-table td.graph-status {
+  width: 16px;
+  padding-right: 0;
+}
+
+.diff-tree-stack .object-graph-table .object-link {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-tree-stack .object-graph-table tr.highlighted {
+  background: {$gentle.highlight};
+}

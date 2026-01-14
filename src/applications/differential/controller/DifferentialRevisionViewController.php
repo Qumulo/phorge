@@ -559,6 +559,7 @@ final class DifferentialRevisionViewController
       ->setSeedPHID($revision->getPHID())
       ->setLoadEntireGraph(true)
       ->loadGraph();
+    $compact_stack_table = null;
     if (!$stack_graph->isEmpty()) {
       // See PHI1900. The graph UI element now tries to figure out the correct
       // height automatically, but currently can't in this case because the
@@ -572,6 +573,16 @@ final class DifferentialRevisionViewController
           ->setName(pht('Stack'))
           ->setKey('stack')
           ->appendChild($stack_table));
+
+      // Build compact stack for sidebar
+      $compact_stack_graph = id(new DifferentialRevisionGraph())
+        ->setViewer($viewer)
+        ->setSeedPHID($revision->getPHID())
+        ->setLoadEntireGraph(true)
+        ->setCompact(true)
+        ->setHeight(24)
+        ->loadGraph();
+      $compact_stack_table = $compact_stack_graph->newGraphTable();
     }
 
     // Keyboard shortcuts for stack navigation: [ for prev, ] for next
@@ -716,7 +727,12 @@ final class DifferentialRevisionViewController
     $main_content = $filetree->newView($main_content);
 
     if (!$filetree->getDisabled()) {
-      $changeset_view->setFormationView($main_content);
+      if ($changeset_view instanceof DifferentialChangesetListView) {
+        $changeset_view->setFormationView($main_content);
+        if ($compact_stack_table) {
+          $changeset_view->setStackView($compact_stack_table);
+        }
+      }
     }
 
     $page = $this->newPage()

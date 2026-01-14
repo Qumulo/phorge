@@ -73,7 +73,8 @@ JX.install('DiffChangesetList', {
     inlineURI: null,
     inlineListURI: null,
     isStandalone: false,
-    formationView: null
+    formationView: null,
+    stackView: null
   },
 
   members: {
@@ -2362,7 +2363,15 @@ JX.install('DiffChangesetList', {
       var flank_body = flank.getBodyNode();
 
       var tree = this._getTreeView();
-      JX.DOM.setContent(flank_body, tree.getNode());
+      var content = [tree.getNode()];
+
+      // Append compact stack view if available
+      var stack_view = this.getStackView();
+      if (stack_view) {
+        content.push(JX.$H(stack_view));
+      }
+
+      JX.DOM.setContent(flank_body, content);
     },
 
     _setupInlineCommentListeners: function() {

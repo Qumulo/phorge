@@ -131,11 +131,6 @@ final class DifferentialRevisionListView extends AphrontView {
       $item->setHeader($revision->getTitle());
       $item->setHref($revision->getURI());
 
-      $size = $this->renderRevisionSize($revision);
-      if ($size !== null) {
-        $item->addAttribute($size);
-      }
-
       if ($revision->getHasDraft($viewer)) {
         $draft = id(new PHUIIconView())
           ->setIcon('fa-comment yellow')
@@ -170,7 +165,13 @@ final class DifferentialRevisionListView extends AphrontView {
         $item->addAttribute(phutil_tag('em', array(), pht('No Reviewers')));
       }
 
-      $item->setEpoch($revision->getDateModified());
+      $size = $this->renderRevisionSize($revision);
+      $date = phabricator_dual_datetime($revision->getDateModified(), $viewer);
+      if ($size !== null) {
+        $item->addIcon('none', array($size, ' ', $date));
+      } else {
+        $item->addIcon('none', $date);
+      }
 
       if ($revision->isClosed()) {
         $item->setDisabled(true);

@@ -28,6 +28,7 @@ final class DifferentialRevisionQuery
   private $createdEpochMax;
   private $noReviewers;
   private $paths;
+  private $titleContains;
 
   const ORDER_MODIFIED      = 'order-modified';
   const ORDER_CREATED       = 'order-created';
@@ -215,6 +216,11 @@ final class DifferentialRevisionQuery
   public function withCreatedEpochBetween($min, $max) {
     $this->createdEpochMin = $min;
     $this->createdEpochMax = $max;
+    return $this;
+  }
+
+  public function withTitleContains($substring) {
+    $this->titleContains = $substring;
     return $this;
   }
 
@@ -747,6 +753,13 @@ final class DifferentialRevisionQuery
         $conn,
         'r.dateCreated <= %d',
         $this->createdEpochMax);
+    }
+
+    if ($this->titleContains !== null) {
+      $where[] = qsprintf(
+        $conn,
+        'r.title LIKE %~',
+        $this->titleContains);
     }
 
     if ($this->statuses !== null) {

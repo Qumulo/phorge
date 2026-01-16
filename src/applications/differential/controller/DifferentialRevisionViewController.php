@@ -472,6 +472,12 @@ final class DifferentialRevisionViewController
       $other_view = $this->renderOtherRevisions($other_revisions);
     }
 
+    $same_story_revisions = $this->loadSameStoryRevisions($revision);
+    $same_story_view = null;
+    if ($same_story_revisions) {
+      $same_story_view = $this->renderSameStoryRevisions($same_story_revisions);
+    }
+
     if ($this->isVeryLargeDiff()) {
       $toc_view = null;
 
@@ -618,9 +624,17 @@ final class DifferentialRevisionViewController
     if ($other_view) {
       $tab_group->addTab(
         id(new PHUITabView())
-          ->setName(pht('Similar'))
+          ->setName(pht('Similar Files'))
           ->setKey('similar')
           ->appendChild($other_view));
+    }
+
+    if ($same_story_view) {
+      $tab_group->addTab(
+        id(new PHUITabView())
+          ->setName(pht('Same Story'))
+          ->setKey('same-story')
+          ->appendChild($same_story_view));
     }
 
     $tab_group->selectTab('timeline');
@@ -1170,6 +1184,58 @@ final class DifferentialRevisionViewController
 
     return id(new DifferentialRevisionListView())
       ->setViewer($viewer)
+      ->setRevisions($revisions)
+      ->setBackground(PHUIObjectBoxView::BLUE_PROPERTY)
+      ->setNoBox(true);
+  }
+
+  private function extractStoryReference($title) {
+    // Match story references like PREFIX-123, JIRA-42, QFS-12345, etc.
+    // Pattern handles: "1/3 PREFIX-123:", "FIX PREFIX-123:", "FIX: PREFIX-123:"
+    if (preg_match('/\b([A-Z]+-\d+):/', $title, $matches)) {
+      return $matches[1];
+    }
+    return null;
+  }
+
+  private function loadSameStoryRevisions(DifferentialRevision $revision) {
+    $viewer = $this->getViewer();
+
+    $story_ref = $this->extractStoryReference($revision->getTitle());
+    if (!$story_ref) {
+      return array();
+    }
+
+    $query = id(new DifferentialRevisionQuery())
+      ->setViewer($viewer)
+      ->withTitleContains($story_ref.':')
+      ->setOrder(DifferentialRevisionQuery::ORDER_MODIFIED)
+      ->setLimit(50)
+      ->needFlags(true)
+      ->needDrafts(true)
+      ->needReviewers(true);
+
+    $results = $query->execute();
+
+    // Remove current revision from results
+    foreach ($results as $key => $result) {
+      if ($result->getID() == $revision->getID()) {
+        unset($results[$key]);
+        break;
+      }
+    }
+
+    return $results;
+  }
+
+  /**
+   * @param array<DifferentialRevision> $revisions
+   */
+  private function renderSameStoryRevisions(array $revisions) {
+    assert_instances_of($revisions, DifferentialRevision::class);
+
+    return id(new DifferentialRevisionListView())
+      ->setViewer($this->getViewer())
       ->setRevisions($revisions)
       ->setBackground(PHUIObjectBoxView::BLUE_PROPERTY)
       ->setNoBox(true);

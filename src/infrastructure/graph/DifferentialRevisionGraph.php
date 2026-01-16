@@ -33,6 +33,10 @@ final class DifferentialRevisionGraph
     return $object->isClosed();
   }
 
+  protected function shouldHideClosedInDisplay() {
+    return $this->getCompact();
+  }
+
   protected function newTableRow($phid, $object, $trace) {
     $viewer = $this->getViewer();
     $is_compact = $this->getCompact();

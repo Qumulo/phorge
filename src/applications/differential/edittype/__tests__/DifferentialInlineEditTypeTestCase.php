@@ -31,6 +31,22 @@ final class DifferentialInlineEditTypeTestCase extends PhabricatorTestCase {
     $this->assertTrue($caught instanceof Exception);
   }
 
+  public function testApplyReplyLocationCopiesParentAnchor() {
+    $parent = id(new DifferentialTransactionComment())
+      ->setChangesetID(7)
+      ->setLineNumber(42)
+      ->setLineLength(3)
+      ->setIsNewFile(1);
+
+    $comment = new DifferentialTransactionComment();
+    DifferentialInlineEditType::applyReplyLocation($comment, $parent);
+
+    $this->assertEqual(7, (int)$comment->getChangesetID());
+    $this->assertEqual(42, (int)$comment->getLineNumber());
+    $this->assertEqual(3, (int)$comment->getLineLength());
+    $this->assertEqual(1, (int)$comment->getIsNewFile());
+  }
+
   private function newDiff() {
     $parser = new ArcanistDiffParser();
     $raw_diff = <<<EODIFF

@@ -329,8 +329,10 @@ final class DifferentialRevisionEditEngine
       ->setConduitDescription(
         pht(
           'Create and publish an inline comment in a single edit. The value '.
-          'is a map with keys "diffPHID", "path", "line", "content", and '.
-          'optionally "length" and "isNewFile".'))
+          'is a map: for a new comment, "diffPHID", "path", "line", '.
+          '"content", and optionally "length" and "isNewFile"; to reply to an '.
+          'existing inline, "replyToCommentPHID" and "content" (the reply '.
+          'inherits the parent comment location).'))
       ->setConduitTypeDescription(pht('Inline comment to create and publish.'));
 
     return $fields;

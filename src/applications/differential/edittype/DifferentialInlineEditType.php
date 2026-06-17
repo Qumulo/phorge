@@ -11,16 +11,20 @@ final class DifferentialInlineEditType extends PhabricatorEditType {
     array $spec) {
 
     $viewer = $this->getEditField()->getViewer();
+    $revision = $this->getEditField()->getObject();
     $value = idx($spec, 'value');
     if (!is_array($value)) {
       throw new Exception(
         pht('Inline comment transaction value must be a map.'));
     }
 
+    // The render and state queries filter inlines by revisionPHID, so a
+    // published comment is only visible once this is set.
     $comment = $template->getApplicationTransactionCommentObject()
+      ->setRevisionPHID($revision->getPHID())
       ->setContent((string)idx($value, 'content'));
 
-    $reply_phid = idx($value, 'replyToCommentPHID');
+    $reply_phid = (string)idx($value, 'replyToCommentPHID');
     if (strlen($reply_phid)) {
       // A reply inherits its location from the comment it answers, so the
       // caller supplies only the parent and the content.
@@ -34,19 +38,29 @@ final class DifferentialInlineEditType extends PhabricatorEditType {
             'Inline comment "%s" does not exist or is not visible.',
             $reply_phid));
       }
+      if ($parent->getRevisionPHID() !== $revision->getPHID()) {
+        throw new Exception(
+          pht(
+            'Inline comment "%s" is not on the revision being edited.',
+            $reply_phid));
+      }
 
       self::applyReplyLocation($comment, $parent)
-        ->setReplyToCommentPHID($parent->getPHID());
+        ->setReplyToCommentPHID($parent->getPHID())
+        ->attachReplyToComment($parent);
     } else {
       $changeset = self::getChangesetForPath(
-        $this->loadChangesets($viewer, $value),
+        $this->loadChangesets($viewer, $revision, $value),
         idx($value, 'path'));
 
+      // The editor reads getReplyToComment() on apply for every inline, so a
+      // fresh (non-reply) comment must attach a null parent explicitly.
       $comment
         ->setChangesetID($changeset->getID())
         ->setLineNumber((int)idx($value, 'line', 0))
         ->setLineLength((int)idx($value, 'length', 0))
-        ->setIsNewFile((int)idx($value, 'isNewFile', 0));
+        ->setIsNewFile((int)idx($value, 'isNewFile', 0))
+        ->attachReplyToComment(null);
     }
 
     $xaction = $this->newTransaction($template)
@@ -55,20 +69,25 @@ final class DifferentialInlineEditType extends PhabricatorEditType {
     return array($xaction);
   }
 
-  private function loadChangesets(PhabricatorUser $viewer, array $value) {
-    $diff_phid = idx($value, 'diffPHID');
-    if (!strlen($diff_phid)) {
-      throw new Exception(
-        pht('Inline comment transaction requires a "diffPHID".'));
-    }
+  private function loadChangesets(
+    PhabricatorUser $viewer,
+    DifferentialRevision $revision,
+    array $value) {
 
-    $diff = id(new DifferentialDiffQuery())
-      ->setViewer($viewer)
-      ->withPHIDs(array($diff_phid))
-      ->executeOne();
-    if (!$diff) {
-      throw new Exception(
-        pht('Diff "%s" does not exist or is not visible.', $diff_phid));
+    $diff_phid = (string)idx($value, 'diffPHID');
+    if (strlen($diff_phid)) {
+      $diff = id(new DifferentialDiffQuery())
+        ->setViewer($viewer)
+        ->withPHIDs(array($diff_phid))
+        ->executeOne();
+      if (!$diff) {
+        throw new Exception(
+          pht('Diff "%s" does not exist or is not visible.', $diff_phid));
+      }
+    } else {
+      // Default to the revision's most recent diff so callers anchor on the
+      // current code without a separate lookup.
+      $diff = $revision->loadActiveDiff();
     }
 
     return id(new DifferentialChangeset())->loadAllWhere(

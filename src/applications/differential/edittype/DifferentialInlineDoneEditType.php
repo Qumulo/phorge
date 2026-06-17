@@ -10,43 +10,52 @@ final class DifferentialInlineDoneEditType extends PhabricatorEditType {
     PhabricatorApplicationTransaction $template,
     array $spec) {
 
+    $viewer = $this->getEditField()->getViewer();
+    $revision = $this->getEditField()->getObject();
     $value = idx($spec, 'value');
     if (!is_array($value)) {
       throw new Exception(
         pht('Inline "done" transaction value must be a map.'));
     }
 
-    $comment_phid = idx($value, 'commentPHID');
+    $comment_phid = (string)idx($value, 'commentPHID');
     if (!strlen($comment_phid)) {
       throw new Exception(
         pht('Inline "done" transaction requires a "commentPHID".'));
     }
 
-    $comment = id(new DifferentialTransactionComment())->loadOneWhere(
-      'phid = %s',
-      $comment_phid);
+    // Scope the lookup to the revision being edited and to comments the actor
+    // can see, so this can't flip the state of a hidden or unrelated comment.
+    $comment = id(new DifferentialDiffInlineCommentQuery())
+      ->setViewer($viewer)
+      ->withPHIDs(array($comment_phid))
+      ->withObjectPHIDs(array($revision->getPHID()))
+      ->executeOne();
     if (!$comment) {
       throw new Exception(
-        pht('Inline comment "%s" does not exist.', $comment_phid));
+        pht(
+          'Inline comment "%s" does not exist on the revision being edited.',
+          $comment_phid));
     }
 
-    $done = (bool)idx($value, 'done', true);
-    $new_state = $done
-      ? PhabricatorInlineComment::STATE_DONE
-      : PhabricatorInlineComment::STATE_UNDONE;
-    $old_state = $comment->getFixedState();
+    $new_state = self::doneStateForFlag((bool)idx($value, 'done', true));
 
-    // The done-state lives directly on the comment; the transaction below only
-    // records the change for history (mirroring newInlineStateTransaction).
-    $comment->setFixedState($new_state)->save();
-
+    // The TYPE_INLINESTATE apply path writes fixedState; this transaction only
+    // carries the old -> new change.
     $xaction = self::newDoneStateTransaction(
       $this->newTransaction($template),
       $comment,
-      $old_state,
+      $comment->getFixedState(),
       $new_state);
 
     return array($xaction);
+  }
+
+  public static function doneStateForFlag($done) {
+    if ($done) {
+      return PhabricatorInlineComment::STATE_DONE;
+    }
+    return PhabricatorInlineComment::STATE_UNDONE;
   }
 
   public static function newDoneStateTransaction(

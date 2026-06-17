@@ -2,12 +2,6 @@
 
 final class DifferentialInlineEditTypeTestCase extends PhabricatorTestCase {
 
-  protected function getPhabricatorTestCaseConfiguration() {
-    return array(
-      self::PHABRICATOR_TESTCONFIG_BUILD_STORAGE_FIXTURES => true,
-    );
-  }
-
   public function testGetChangesetForPathMatchesByFilename() {
     $changesets = $this->newDiff()->getChangesets();
 

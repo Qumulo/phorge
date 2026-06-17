@@ -328,11 +328,12 @@ final class DifferentialRevisionEditEngine
       ->setTransactionType(DifferentialTransaction::TYPE_INLINE)
       ->setConduitDescription(
         pht(
-          'Create and publish an inline comment in a single edit. The value '.
-          'is a map: for a new comment, "diffPHID", "path", "line", '.
-          '"content", and optionally "length" and "isNewFile"; to reply to an '.
-          'existing inline, "replyToCommentPHID" and "content" (the reply '.
-          'inherits the parent comment location).'))
+          'Create and publish an inline comment in one edit. The value is a '.
+          'map. For a new comment: "path", "line", "content", and optionally '.
+          '"diffPHID" (defaults to the active diff), "length" (extra lines '.
+          'past the first; 0 = single line), and "isNewFile". To reply: '.
+          '"replyToCommentPHID" and "content" (location inherited from the '.
+          'parent).'))
       ->setConduitTypeDescription(pht('Inline comment to create and publish.'));
 
     $fields[] = id(new DifferentialInlineDoneEditField())

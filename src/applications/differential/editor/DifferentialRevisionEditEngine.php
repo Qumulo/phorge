@@ -335,6 +335,17 @@ final class DifferentialRevisionEditEngine
           'inherits the parent comment location).'))
       ->setConduitTypeDescription(pht('Inline comment to create and publish.'));
 
+    $fields[] = id(new DifferentialInlineDoneEditField())
+      ->setKey('inline.done')
+      ->setLabel(pht('Resolve Inline Comment'))
+      ->setIsFormField(false)
+      ->setTransactionType(PhabricatorTransactions::TYPE_INLINESTATE)
+      ->setConduitDescription(
+        pht(
+          'Mark an inline comment as done or undone. The value is a map with '.
+          'keys "commentPHID" and "done" (a boolean).'))
+      ->setConduitTypeDescription(pht('Inline comment done-state to set.'));
+
     return $fields;
   }
 

@@ -594,12 +594,8 @@ final class DifferentialTransactionEditor
 
     $show_lines = false;
     if ($this->isFirstBroadcast()) {
-      $action = pht('Request');
-
       $show_lines = true;
     } else {
-      $action = parent::getMailAction($object, $xactions);
-
       $strongest = $this->getStrongestAction($object, $xactions);
       $type_update = DifferentialRevisionUpdateTransaction::TRANSACTIONTYPE;
       if ($strongest->getTransactionType() == $type_update) {
@@ -608,15 +604,22 @@ final class DifferentialTransactionEditor
     }
 
     if ($show_lines) {
-      $count = new PhutilNumber($object->getLineCount());
-      $action = pht('%s] [%s', $action, $object->getRevisionScaleGlyphs());
+      return rtrim($object->getRevisionScaleGlyphs());
     }
 
+    return null;
+  }
+
+  protected function formatMailVaryPrefix($action) {
+    // Return size without brackets (e.g., "M↑" instead of "[M↑]")
+    if ($action === null || $action === '') {
+      return null;
+    }
     return $action;
   }
 
   protected function getMailSubjectPrefix() {
-    return pht('[Differential]');
+    return 'CR:';
   }
 
   protected function getMailThreadID(PhabricatorLiskDAO $object) {

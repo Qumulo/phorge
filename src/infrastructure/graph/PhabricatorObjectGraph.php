@@ -60,6 +60,10 @@ abstract class PhabricatorObjectGraph
   abstract protected function newTable(AphrontTableView $table);
   abstract protected function isClosed($object);
 
+  protected function shouldHideClosedInDisplay() {
+    return false;
+  }
+
   protected function newEllipsisRow() {
     return array(
       '...',
@@ -196,6 +200,60 @@ abstract class PhabricatorObjectGraph
       ->withPHIDs(array_keys($ancestry))
       ->execute();
     $objects = mpull($objects, null, 'getPHID');
+
+    // If we should hide closed items, filter them out of the ancestry while
+    // reconnecting their children to their parents to maintain graph
+    // connectivity.
+    if ($this->shouldHideClosedInDisplay()) {
+      $seed_phid = $this->getSeedPHID();
+      $closed_phids = array();
+
+      foreach ($objects as $phid => $object) {
+        // Never filter out the current/seed revision, even if it's closed.
+        if ($phid === $seed_phid) {
+          continue;
+        }
+        if ($this->isClosed($object)) {
+          $closed_phids[$phid] = true;
+        }
+      }
+
+      if ($closed_phids) {
+        // For each node, if any of its parents are closed, replace them
+        // with the closed parent's parents. We need to resolve transitively
+        // in case there are consecutive closed items (A -> B closed -> C
+        // closed -> D should connect D to A).
+        foreach ($ancestry as $phid => $parents) {
+          $new_parents = array();
+          $queue = $parents;
+          $seen = array();
+
+          while ($queue) {
+            $parent_phid = array_pop($queue);
+            if (isset($seen[$parent_phid])) {
+              continue;
+            }
+            $seen[$parent_phid] = true;
+
+            if (isset($closed_phids[$parent_phid])) {
+              // This parent is closed, queue its parents for processing.
+              $grandparents = idx($ancestry, $parent_phid, array());
+              foreach ($grandparents as $grandparent) {
+                $queue[] = $grandparent;
+              }
+            } else {
+              $new_parents[] = $parent_phid;
+            }
+          }
+          $ancestry[$phid] = array_values(array_unique($new_parents));
+        }
+
+        // Remove closed items from the ancestry.
+        foreach ($closed_phids as $closed_phid => $ignored) {
+          unset($ancestry[$closed_phid]);
+        }
+      }
+    }
 
     $order = id(new PhutilDirectedScalarGraph())
       ->addNodes($ancestry)

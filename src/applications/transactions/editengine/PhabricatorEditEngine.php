@@ -346,6 +346,21 @@ abstract class PhabricatorEditEngine
 
 
   /**
+   * Return URI to navigate to after comment submission via "Submit & Next".
+   *
+   * Override this method in subclasses to provide a "Submit & Next" button
+   * that submits the comment form and then navigates to a different object.
+   *
+   * @param  object $object Object being commented on.
+   * @return string|null URI to navigate to, or null to hide the button.
+   * @task text
+   */
+  protected function getNextObjectURI($object) {
+    return null;
+  }
+
+
+  /**
    * @task text
    */
   protected function getPageHeader($object) {
@@ -1703,6 +1718,11 @@ abstract class PhabricatorEditEngine
       ->setEditEngine($this)
       ->setSubmitButtonName($button_text);
 
+    $next_uri = $this->getNextObjectURI($object);
+    if ($next_uri !== null) {
+      $view->setNextObjectURI($next_uri);
+    }
+
     $draft = PhabricatorVersionedDraft::loadDraft(
       $object_phid,
       $viewer->getPHID());
@@ -2108,8 +2128,15 @@ abstract class PhabricatorEditEngine
         ->setViewData($view_data)
         ->setPreviewContent($preview_content);
     } else {
+      $redirect_uri = $view_uri;
+      if ($request->getExists('__submit_and_next__')) {
+        $next_uri = $request->getStr('__next_uri__');
+        if (strlen($next_uri)) {
+          $redirect_uri = $next_uri;
+        }
+      }
       return id(new AphrontRedirectResponse())
-        ->setURI($view_uri);
+        ->setURI($redirect_uri);
     }
   }
 

@@ -68,9 +68,15 @@ final class DifferentialRepositoryField
   }
 
   public function renderOnListItem(PHUIObjectItemView $view) {
-    if ($this->getValue()) {
-      $handle = $this->getViewer()->renderHandle($this->getValue());
-      $view->addByLine(pht('Repository: %s', $handle));
+    $repository = $this->getObject()->getRepository();
+    if ($repository) {
+      $link = phutil_tag(
+        'a',
+        array(
+          'href' => $repository->getURI(),
+        ),
+        $repository->getName());
+      $view->addByLine(pht('Repository: %s', $link));
     }
   }
 

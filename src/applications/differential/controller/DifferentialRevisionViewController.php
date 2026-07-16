@@ -758,8 +758,10 @@ final class DifferentialRevisionViewController
   }
 
   private function buildHeader(DifferentialRevision $revision) {
+    $title = $this->linkifyStoryReferences($revision->getTitle());
+
     $view = id(new PHUIHeaderView())
-      ->setHeader($revision->getTitle($revision))
+      ->setHeader($title)
       ->setViewer($this->getViewer())
       ->setPolicyObject($revision)
       ->setHeaderIcon('fa-cog');
@@ -1196,6 +1198,35 @@ final class DifferentialRevisionViewController
       return $matches[1];
     }
     return null;
+  }
+
+  private function linkifyStoryReferences($title) {
+    // Match story references like PREFIX-123, JIRA-42, QFS-12345, etc.
+    // and convert them to clickable JIRA links.
+    $pattern = '/\b([A-Z]+-\d+)\b/';
+    $jira_base_url = 'https://qumulo.atlassian.net/browse/';
+
+    $parts = preg_split($pattern, $title, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+    $result = array();
+    foreach ($parts as $i => $part) {
+      if ($i % 2 === 1) {
+        // This is a captured story reference
+        $result[] = phutil_tag(
+          'a',
+          array(
+            'href' => $jira_base_url.$part,
+            'target' => '_blank',
+            'rel' => 'noreferrer',
+          ),
+          $part);
+      } else {
+        // This is regular text
+        $result[] = $part;
+      }
+    }
+
+    return $result;
   }
 
   private function loadSameStoryRevisions(DifferentialRevision $revision) {

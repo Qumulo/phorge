@@ -83,6 +83,38 @@ final class DifferentialRevisionEditEngine
     return parent::getCommentViewButtonText($object);
   }
 
+  protected function getNextObjectURI($object) {
+    $viewer = $this->getViewer();
+
+    $child_type = DifferentialRevisionDependedOnByRevisionEdgeType::EDGECONST;
+
+    $edge_query = id(new PhabricatorEdgeQuery())
+      ->withSourcePHIDs(array($object->getPHID()))
+      ->withEdgeTypes(array($child_type));
+    $edge_query->execute();
+
+    $child_phids = $edge_query->getDestinationPHIDs(
+      array($object->getPHID()),
+      array($child_type));
+
+    // Only show button if exactly one child revision exists
+    if (count($child_phids) !== 1) {
+      return null;
+    }
+
+    $child_phid = head($child_phids);
+    $child_revision = id(new DifferentialRevisionQuery())
+      ->setViewer($viewer)
+      ->withPHIDs(array($child_phid))
+      ->executeOne();
+
+    if (!$child_revision) {
+      return null;
+    }
+
+    return $child_revision->getURI();
+  }
+
   protected function getObjectViewURI($object) {
     return $object->getURI();
   }

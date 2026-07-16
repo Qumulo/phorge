@@ -54,6 +54,7 @@ final class DifferentialRevisionInlineTransaction
       'path' => $changeset->getDisplayFilename(),
       'line' => (int)$comment->getLineNumber(),
       'length' => (int)($comment->getLineLength() + 1),
+      'isNewFile' => (bool)$comment->getIsNewFile(),
       'replyToCommentPHID' => $comment->getReplyToCommentPHID(),
       'isDone' => $is_done,
     );

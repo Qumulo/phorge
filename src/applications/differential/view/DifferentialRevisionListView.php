@@ -131,11 +131,6 @@ final class DifferentialRevisionListView extends AphrontView {
       $item->setHeader($revision->getTitle());
       $item->setHref($revision->getURI());
 
-      $size = $this->renderRevisionSize($revision);
-      if ($size !== null) {
-        $item->addAttribute($size);
-      }
-
       if ($revision->getHasDraft($viewer)) {
         $draft = id(new PHUIIconView())
           ->setIcon('fa-comment yellow')
@@ -149,16 +144,6 @@ final class DifferentialRevisionListView extends AphrontView {
 
       $author_handle = $handles[$revision->getAuthorPHID()];
       $item->addByline(pht('Author: %s', $author_handle->renderLink()));
-
-      $unlanded = idx($this->unlandedDependencies, $phid);
-      if ($unlanded) {
-        $item->addAttribute(
-          array(
-            id(new PHUIIconView())->setIcon('fa-chain-broken', 'red'),
-            ' ',
-            pht('Open Dependencies'),
-          ));
-      }
 
       $more = null;
       if ($reviewer_more[$key]) {
@@ -180,7 +165,13 @@ final class DifferentialRevisionListView extends AphrontView {
         $item->addAttribute(phutil_tag('em', array(), pht('No Reviewers')));
       }
 
-      $item->setEpoch($revision->getDateModified());
+      $size = $this->renderRevisionSize($revision);
+      $date = phabricator_dual_datetime($revision->getDateModified(), $viewer);
+      if ($size !== null) {
+        $item->addIcon('none', array($size, ' ', $date));
+      } else {
+        $item->addIcon('none', $date);
+      }
 
       if ($revision->isClosed()) {
         $item->setDisabled(true);
@@ -228,49 +219,19 @@ final class DifferentialRevisionListView extends AphrontView {
       return null;
     }
 
-    $size = array();
-
-    $glyphs = $revision->getRevisionScaleGlyphs();
-    $plus_count = 0;
-    for ($ii = 0; $ii < 7; $ii++) {
-      $c = $glyphs[$ii];
-
-      switch ($c) {
-        case '+':
-          $size[] = id(new PHUIIconView())
-            ->setIcon('fa-plus');
-          $plus_count++;
-          break;
-        case '-':
-          $size[] = id(new PHUIIconView())
-            ->setIcon('fa-minus');
-          break;
-        default:
-          $size[] = id(new PHUIIconView())
-            ->setIcon('fa-square-o invisible');
-          break;
-      }
-    }
-
+    $size = $revision->getRevisionTShirtSize();
+    $display = $revision->getRevisionSizeDisplay();
     $n = $revision->getAddedLineCount() + $revision->getRemovedLineCount();
 
-    $classes = array();
-    $classes[] = 'differential-revision-size';
+    $classes = array('differential-revision-size');
 
-    $tip = array();
-    $tip[] = pht('%s Lines', new PhutilNumber($n));
-
-    if ($plus_count <= 1) {
+    if (strpos($size, 'S') !== false) {
       $classes[] = 'differential-revision-small';
-      $tip[] = pht('Smaller Change');
-    }
-
-    if ($plus_count >= 4) {
+    } else if (strpos($size, 'L') !== false) {
       $classes[] = 'differential-revision-large';
-      $tip[] = pht('Larger Change');
     }
 
-    $tip = phutil_implode_html(" \xC2\xB7 ", $tip);
+    $tip = pht('%s Lines', new PhutilNumber($n));
 
     return javelin_tag(
       'span',
@@ -280,10 +241,10 @@ final class DifferentialRevisionListView extends AphrontView {
         'meta' => array(
           'tip' => $tip,
           'align' => 'E',
-          'size' => 400,
+          'size' => 200,
         ),
       ),
-      $size);
+      $display);
   }
 
 }

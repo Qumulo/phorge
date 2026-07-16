@@ -3581,11 +3581,13 @@ abstract class PhabricatorApplicationTransactionEditor
       $muted_phids = array();
     }
 
+    $vary_prefix = $this->formatMailVaryPrefix($action);
+
     $mail
       ->setSensitiveContent(false)
       ->setFrom($this->getActingAsPHID())
       ->setSubjectPrefix($this->getMailSubjectPrefix())
-      ->setVarySubjectPrefix('['.$action.']')
+      ->setVarySubjectPrefix($vary_prefix)
       ->setThreadID($this->getMailThreadID($object), $this->getIsNewObject())
       ->setRelatedPHID($object->getPHID())
       ->setExcludeMailRecipientPHIDs($this->getExcludeMailRecipientPHIDs())
@@ -3726,6 +3728,17 @@ abstract class PhabricatorApplicationTransactionEditor
     PhabricatorLiskDAO $object,
     array $xactions) {
     return $this->getStrongestAction($object, $xactions)->getActionName();
+  }
+
+
+  /**
+   * @task mail
+   */
+  protected function formatMailVaryPrefix($action) {
+    if ($action === null || $action === '') {
+      return null;
+    }
+    return '['.$action.']';
   }
 
 

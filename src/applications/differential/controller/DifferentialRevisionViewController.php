@@ -472,6 +472,12 @@ final class DifferentialRevisionViewController
       $other_view = $this->renderOtherRevisions($other_revisions);
     }
 
+    $same_story_revisions = $this->loadSameStoryRevisions($revision);
+    $same_story_view = null;
+    if ($same_story_revisions) {
+      $same_story_view = $this->renderSameStoryRevisions($same_story_revisions);
+    }
+
     if ($this->isVeryLargeDiff()) {
       $toc_view = null;
 
@@ -522,6 +528,12 @@ final class DifferentialRevisionViewController
 
     $tab_group->addTab(
       id(new PHUITabView())
+        ->setName(pht('Timeline'))
+        ->setKey('timeline')
+        ->appendChild($timeline));
+
+    $tab_group->addTab(
+      id(new PHUITabView())
         ->setName(pht('History'))
         ->setKey('history')
         ->appendChild($history));
@@ -553,6 +565,7 @@ final class DifferentialRevisionViewController
       ->setSeedPHID($revision->getPHID())
       ->setLoadEntireGraph(true)
       ->loadGraph();
+    $compact_stack_table = null;
     if (!$stack_graph->isEmpty()) {
       // See PHI1900. The graph UI element now tries to figure out the correct
       // height automatically, but currently can't in this case because the
@@ -561,38 +574,70 @@ final class DifferentialRevisionViewController
 
       $stack_table = $stack_graph->newGraphTable();
 
-      $parent_type = DifferentialRevisionDependsOnRevisionEdgeType::EDGECONST;
-      $reachable = $stack_graph->getReachableObjects($parent_type);
-
-      foreach ($reachable as $key => $reachable_revision) {
-        if ($reachable_revision->isClosed()) {
-          unset($reachable[$key]);
-        }
-      }
-
-      if ($reachable) {
-        $stack_name = pht('Stack (%s Open)', phutil_count($reachable));
-        $stack_color = PHUIListItemView::STATUS_FAIL;
-      } else {
-        $stack_name = pht('Stack');
-        $stack_color = null;
-      }
-
       $tab_group->addTab(
         id(new PHUITabView())
-          ->setName($stack_name)
+          ->setName(pht('Stack'))
           ->setKey('stack')
-          ->setColor($stack_color)
           ->appendChild($stack_table));
+
+      // Build compact stack for sidebar
+      $compact_stack_graph = id(new DifferentialRevisionGraph())
+        ->setViewer($viewer)
+        ->setSeedPHID($revision->getPHID())
+        ->setLoadEntireGraph(true)
+        ->setCompact(true)
+        ->setHeight(24)
+        ->loadGraph();
+      $compact_stack_table = $compact_stack_graph->newGraphTable();
+    }
+
+    // Keyboard shortcuts for stack navigation: [ for prev, ] for next
+    $parent_type = DifferentialRevisionDependsOnRevisionEdgeType::EDGECONST;
+    $child_type = DifferentialRevisionDependedOnByRevisionEdgeType::EDGECONST;
+
+    $edge_query = id(new PhabricatorEdgeQuery())
+      ->withSourcePHIDs(array($revision->getPHID()))
+      ->withEdgeTypes(array($parent_type, $child_type));
+    $edge_query->execute();
+
+    $parent_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($parent_type));
+    $child_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($child_type));
+
+    if ($parent_phids || $child_phids) {
+      $handles = $viewer->loadHandles(
+        array_merge($parent_phids, $child_phids));
+
+      $pager_config = array();
+      if ($parent_phids) {
+        $pager_config['prev'] = $handles[head($parent_phids)]->getURI();
+      }
+      if ($child_phids) {
+        $pager_config['next'] = $handles[head($child_phids)]->getURI();
+      }
+      Javelin::initBehavior('phabricator-keyboard-pager', $pager_config);
     }
 
     if ($other_view) {
       $tab_group->addTab(
         id(new PHUITabView())
-          ->setName(pht('Similar'))
+          ->setName(pht('Similar Files'))
           ->setKey('similar')
           ->appendChild($other_view));
     }
+
+    if ($same_story_view) {
+      $tab_group->addTab(
+        id(new PHUITabView())
+          ->setName(pht('Same Story'))
+          ->setKey('same-story')
+          ->appendChild($same_story_view));
+    }
+
+    $tab_group->selectTab('timeline');
 
     $view_button = id(new PHUIButtonView())
       ->setTag('a')
@@ -635,7 +680,6 @@ final class DifferentialRevisionViewController
       $footer[] = array(
         $anchor,
         $warnings,
-        $tab_view,
         $changeset_view,
       );
     }
@@ -677,14 +721,14 @@ final class DifferentialRevisionViewController
       ->setHeader($header)
       ->setSubheader($subheader)
       ->setCurtain($curtain)
+      ->setSideColumn($diff_detail_box)
       ->setMainColumn(
         array(
           $operations_box,
           $info_view,
           $details,
-          $diff_detail_box,
           $unit_box,
-          $timeline,
+          $tab_view,
           $signature_message,
         ))
       ->setFooter($footer);
@@ -697,7 +741,12 @@ final class DifferentialRevisionViewController
     $main_content = $filetree->newView($main_content);
 
     if (!$filetree->getDisabled()) {
-      $changeset_view->setFormationView($main_content);
+      if ($changeset_view instanceof DifferentialChangesetListView) {
+        $changeset_view->setFormationView($main_content);
+        if ($compact_stack_table) {
+          $changeset_view->setStackView($compact_stack_table);
+        }
+      }
     }
 
     $page = $this->newPage()
@@ -709,8 +758,10 @@ final class DifferentialRevisionViewController
   }
 
   private function buildHeader(DifferentialRevision $revision) {
+    $title = $this->linkifyStoryReferences($revision->getTitle());
+
     $view = id(new PHUIHeaderView())
-      ->setHeader($revision->getTitle($revision))
+      ->setHeader($title)
       ->setViewer($this->getViewer())
       ->setPolicyObject($revision)
       ->setHeaderIcon('fa-cog');
@@ -769,6 +820,44 @@ final class DifferentialRevisionViewController
     $viewer = $this->getViewer();
     $properties = id(new PHUIPropertyListView())
       ->setViewer($viewer);
+
+    // Add Depends On / Dependencies fields at the top
+    $parent_type = DifferentialRevisionDependsOnRevisionEdgeType::EDGECONST;
+    $child_type = DifferentialRevisionDependedOnByRevisionEdgeType::EDGECONST;
+
+    $edge_query = id(new PhabricatorEdgeQuery())
+      ->withSourcePHIDs(array($revision->getPHID()))
+      ->withEdgeTypes(array($parent_type, $child_type));
+    $edge_query->execute();
+
+    $parent_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($parent_type));
+    $child_phids = $edge_query->getDestinationPHIDs(
+      array($revision->getPHID()),
+      array($child_type));
+
+    if ($child_phids) {
+      $handles = $viewer->loadHandles($child_phids);
+      $properties->addProperty(
+        pht('Dependencies'),
+        $handles->renderList());
+    } elseif ($parent_phids) {
+      $properties->addProperty(
+        pht('Dependencies'),
+        pht('None'));
+    }
+
+    if ($parent_phids) {
+      $handles = $viewer->loadHandles($parent_phids);
+      $properties->addProperty(
+        pht('Depends On'),
+        $handles->renderList());
+    } elseif ($child_phids) {
+      $properties->addProperty(
+        pht('Depends On'),
+        pht('None'));
+    }
 
     if ($custom_fields) {
       $custom_fields->appendFieldsToPropertyList(
@@ -1097,6 +1186,87 @@ final class DifferentialRevisionViewController
 
     return id(new DifferentialRevisionListView())
       ->setViewer($viewer)
+      ->setRevisions($revisions)
+      ->setBackground(PHUIObjectBoxView::BLUE_PROPERTY)
+      ->setNoBox(true);
+  }
+
+  private function extractStoryReference($title) {
+    // Match story references like PREFIX-123, JIRA-42, QFS-12345, etc.
+    // Pattern handles: "1/3 PREFIX-123:", "FIX PREFIX-123:", "FIX: PREFIX-123:"
+    if (preg_match('/\b([A-Z]+-\d+):/', $title, $matches)) {
+      return $matches[1];
+    }
+    return null;
+  }
+
+  private function linkifyStoryReferences($title) {
+    // Match story references like PREFIX-123, JIRA-42, QFS-12345, etc.
+    // and convert them to clickable JIRA links.
+    $pattern = '/\b([A-Z]+-\d+)\b/';
+    $jira_base_url = 'https://qumulo.atlassian.net/browse/';
+
+    $parts = preg_split($pattern, $title, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+    $result = array();
+    foreach ($parts as $i => $part) {
+      if ($i % 2 === 1) {
+        // This is a captured story reference
+        $result[] = phutil_tag(
+          'a',
+          array(
+            'href' => $jira_base_url.$part,
+            'target' => '_blank',
+            'rel' => 'noreferrer',
+          ),
+          $part);
+      } else {
+        // This is regular text
+        $result[] = $part;
+      }
+    }
+
+    return $result;
+  }
+
+  private function loadSameStoryRevisions(DifferentialRevision $revision) {
+    $viewer = $this->getViewer();
+
+    $story_ref = $this->extractStoryReference($revision->getTitle());
+    if (!$story_ref) {
+      return array();
+    }
+
+    $query = id(new DifferentialRevisionQuery())
+      ->setViewer($viewer)
+      ->withTitleContains($story_ref.':')
+      ->setOrder(DifferentialRevisionQuery::ORDER_MODIFIED)
+      ->setLimit(50)
+      ->needFlags(true)
+      ->needDrafts(true)
+      ->needReviewers(true);
+
+    $results = $query->execute();
+
+    // Remove current revision from results
+    foreach ($results as $key => $result) {
+      if ($result->getID() == $revision->getID()) {
+        unset($results[$key]);
+        break;
+      }
+    }
+
+    return $results;
+  }
+
+  /**
+   * @param array<DifferentialRevision> $revisions
+   */
+  private function renderSameStoryRevisions(array $revisions) {
+    assert_instances_of($revisions, DifferentialRevision::class);
+
+    return id(new DifferentialRevisionListView())
+      ->setViewer($this->getViewer())
       ->setRevisions($revisions)
       ->setBackground(PHUIObjectBoxView::BLUE_PROPERTY)
       ->setNoBox(true);

@@ -29,6 +29,7 @@ final class PhabricatorApplicationTransactionCommentView
   private $commentActions;
   private $commentActionGroups = array();
   private $transactionTimeline;
+  private $nextObjectURI;
 
   /**
    * Set object in which this comment textarea field is displayed
@@ -43,6 +44,15 @@ final class PhabricatorApplicationTransactionCommentView
    */
   public function getObject() {
     return $this->object;
+  }
+
+  public function setNextObjectURI($next_object_uri) {
+    $this->nextObjectURI = $next_object_uri;
+    return $this;
+  }
+
+  public function getNextObjectURI() {
+    return $this->nextObjectURI;
   }
 
   public function setShowPreview($show_preview) {
@@ -521,19 +531,30 @@ final class PhabricatorApplicationTransactionCommentView
         ));
     }
 
-    $submit_button = id(new AphrontFormSubmitControl())
+    $submit_control = id(new AphrontFormSubmitControl())
       ->addClass('phui-comment-fullwidth-control')
       ->addClass('phui-comment-submit-control')
+      ->addSigil('submit-transactions')
       ->setValue($this->getSubmitButtonName());
+
+    $next_uri = $this->getNextObjectURI();
+    if ($next_uri !== null) {
+      $submit_next = id(new PHUIButtonView())
+        ->setTag('input')
+        ->setName('__submit_and_next__')
+        ->setText(pht('Submit & Next'))
+        ->setColor(PHUIButtonView::GREY)
+        ->addSigil('alternate-submit-button');
+      $submit_control->addButton($submit_next);
+    }
 
     $form
       ->appendChild($remarkup_control)
-      ->appendChild(
-        id(new AphrontFormSubmitControl())
-          ->addClass('phui-comment-fullwidth-control')
-          ->addClass('phui-comment-submit-control')
-          ->addSigil('submit-transactions')
-          ->setValue($this->getSubmitButtonName()));
+      ->appendChild($submit_control);
+
+    if ($next_uri !== null) {
+      $form->addHiddenInput('__next_uri__', $next_uri);
+    }
 
     return $form;
   }

@@ -83,6 +83,38 @@ final class DifferentialRevisionEditEngine
     return parent::getCommentViewButtonText($object);
   }
 
+  protected function getNextObjectURI($object) {
+    $viewer = $this->getViewer();
+
+    $child_type = DifferentialRevisionDependedOnByRevisionEdgeType::EDGECONST;
+
+    $edge_query = id(new PhabricatorEdgeQuery())
+      ->withSourcePHIDs(array($object->getPHID()))
+      ->withEdgeTypes(array($child_type));
+    $edge_query->execute();
+
+    $child_phids = $edge_query->getDestinationPHIDs(
+      array($object->getPHID()),
+      array($child_type));
+
+    // Only show button if exactly one child revision exists
+    if (count($child_phids) !== 1) {
+      return null;
+    }
+
+    $child_phid = head($child_phids);
+    $child_revision = id(new DifferentialRevisionQuery())
+      ->setViewer($viewer)
+      ->withPHIDs(array($child_phid))
+      ->executeOne();
+
+    if (!$child_revision) {
+      return null;
+    }
+
+    return $child_revision->getURI();
+  }
+
   protected function getObjectViewURI($object) {
     return $object->getURI();
   }
@@ -320,6 +352,32 @@ final class DifferentialRevisionEditEngine
           'Change autosubmission from draft state after builds finish.'))
       ->setConduitTypeDescription(pht('New "Hold as Draft" setting.'))
       ->setValue($object->getHoldAsDraft());
+
+    $fields[] = id(new DifferentialInlineEditField())
+      ->setKey('inline')
+      ->setLabel(pht('Inline Comment'))
+      ->setIsFormField(false)
+      ->setTransactionType(DifferentialTransaction::TYPE_INLINE)
+      ->setConduitDescription(
+        pht(
+          'Create and publish an inline comment in one edit. The value is a '.
+          'map. For a new comment: "path", "line", "content", and optionally '.
+          '"diffPHID" (defaults to the active diff), "length" (extra lines '.
+          'past the first; 0 = single line), and "isNewFile". To reply: '.
+          '"replyToCommentPHID" and "content" (location inherited from the '.
+          'parent).'))
+      ->setConduitTypeDescription(pht('Inline comment to create and publish.'));
+
+    $fields[] = id(new DifferentialInlineDoneEditField())
+      ->setKey('inline.done')
+      ->setLabel(pht('Resolve Inline Comment'))
+      ->setIsFormField(false)
+      ->setTransactionType(PhabricatorTransactions::TYPE_INLINESTATE)
+      ->setConduitDescription(
+        pht(
+          'Mark an inline comment as done or undone. The value is a map with '.
+          'keys "commentPHID" and "done" (a boolean).'))
+      ->setConduitTypeDescription(pht('Inline comment done-state to set.'));
 
     return $fields;
   }

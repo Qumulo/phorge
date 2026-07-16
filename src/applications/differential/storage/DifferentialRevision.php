@@ -726,47 +726,59 @@ final class DifferentialRevision extends DifferentialDAO
   }
 
   public function getRevisionScaleGlyphs() {
+    return $this->getRevisionSizeDisplay();
+  }
+
+  public function getRevisionTShirtSize() {
+    // Thresholds chosen to achieve 10%/20%/40%/20%/10% distribution
+    // based on analysis of our last 5,000 commits.
+    $total = $this->getAddedLineCount() + $this->getRemovedLineCount();
+
+    if ($total <= 5) {
+      return 'XS';
+    }
+    if ($total <= 18) {
+      return 'S';
+    }
+    if ($total <= 88) {
+      return 'M';
+    }
+    if ($total <= 244) {
+      return 'L';
+    }
+    return 'XL';
+  }
+
+  public function getRevisionRatioArrow() {
     $add = $this->getAddedLineCount();
     $rem = $this->getRemovedLineCount();
-    $all = ($add + $rem);
+    $total = $add + $rem;
 
-    if (!$all) {
-      return '       ';
+    if ($total == 0) {
+      return ' ';
     }
 
-    $map = array(
-      20 => 2,
-      50 => 3,
-      150 => 4,
-      375 => 5,
-      1000 => 6,
-      2500 => 7,
-    );
+    // Ratio thresholds chosen to achieve 10%/20%/40%/20%/10% distribution
+    // based on analysis of our last 5,000 commits.
+    $ratio = $add / $total;
 
-    $n = 1;
-    foreach ($map as $size => $count) {
-      if ($size <= $all) {
-        $n = $count;
-      } else {
-        break;
-      }
+    if ($rem == 0) {
+      return "\xE2\x87\x88";  // ⇈ Pure additions
     }
-
-    $add_n = (int)ceil(($add / $all) * $n);
-    $rem_n = (int)ceil(($rem / $all) * $n);
-
-    while ($add_n + $rem_n > $n) {
-      if ($add_n > 1) {
-        $add_n--;
-      } else {
-        $rem_n--;
-      }
+    if ($ratio > 0.824) {
+      return "\xE2\x86\x91";  // ↑ More additions
     }
+    if ($ratio > 0.500) {
+      return ' ';             // Balanced
+    }
+    if ($ratio > 0.202) {
+      return "\xE2\x86\x93";  // ↓ More deletions
+    }
+    return "\xE2\x87\x8A";    // ⇊ Mostly deletions
+  }
 
-    return
-      str_repeat('+', $add_n).
-      str_repeat('-', $rem_n).
-      str_repeat(' ', (7 - $n));
+  public function getRevisionSizeDisplay() {
+    return $this->getRevisionTShirtSize().$this->getRevisionRatioArrow();
   }
 
   public function getBuildableStatus($phid) {

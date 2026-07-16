@@ -321,6 +321,32 @@ final class DifferentialRevisionEditEngine
       ->setConduitTypeDescription(pht('New "Hold as Draft" setting.'))
       ->setValue($object->getHoldAsDraft());
 
+    $fields[] = id(new DifferentialInlineEditField())
+      ->setKey('inline')
+      ->setLabel(pht('Inline Comment'))
+      ->setIsFormField(false)
+      ->setTransactionType(DifferentialTransaction::TYPE_INLINE)
+      ->setConduitDescription(
+        pht(
+          'Create and publish an inline comment in one edit. The value is a '.
+          'map. For a new comment: "path", "line", "content", and optionally '.
+          '"diffPHID" (defaults to the active diff), "length" (extra lines '.
+          'past the first; 0 = single line), and "isNewFile". To reply: '.
+          '"replyToCommentPHID" and "content" (location inherited from the '.
+          'parent).'))
+      ->setConduitTypeDescription(pht('Inline comment to create and publish.'));
+
+    $fields[] = id(new DifferentialInlineDoneEditField())
+      ->setKey('inline.done')
+      ->setLabel(pht('Resolve Inline Comment'))
+      ->setIsFormField(false)
+      ->setTransactionType(PhabricatorTransactions::TYPE_INLINESTATE)
+      ->setConduitDescription(
+        pht(
+          'Mark an inline comment as done or undone. The value is a map with '.
+          'keys "commentPHID" and "done" (a boolean).'))
+      ->setConduitTypeDescription(pht('Inline comment done-state to set.'));
+
     return $fields;
   }
 

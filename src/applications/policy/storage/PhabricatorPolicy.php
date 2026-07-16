@@ -49,6 +49,13 @@ final class PhabricatorPolicy
     $policy_identifier,
     ?PhabricatorObjectHandle $handle = null) {
 
+    if ($policy_identifier === null) {
+      return id(new self())
+        ->setType(PhabricatorPolicyType::TYPE_MASKED)
+        ->setName(pht('Null policy'))
+        ->makeEphemeral();
+    }
+
     $is_global = PhabricatorPolicyQuery::isGlobalPolicy($policy_identifier);
     if ($is_global) {
       return PhabricatorPolicyQuery::getGlobalPolicy($policy_identifier);
@@ -78,7 +85,7 @@ final class PhabricatorPolicy
           $handle_phid));
     }
 
-    $policy = id(new PhabricatorPolicy())
+    $policy = id(new self())
       ->setPHID($policy_identifier)
       ->setHref($handle->getURI());
 
@@ -88,11 +95,26 @@ final class PhabricatorPolicy
         $policy
           ->setType(PhabricatorPolicyType::TYPE_PROJECT)
           ->setName($handle->getName())
-          ->setIcon($handle->getIcon());
+          ->setIcon($handle->getIcon())
+          ->setRules(array(
+            array(
+              'action' => 'allow',
+              'rule' => PhabricatorProjectsAllPolicyRule::class,
+              'value' => array($policy_identifier),
+            ),
+          ));
         break;
       case PhabricatorPeopleUserPHIDType::TYPECONST:
-        $policy->setType(PhabricatorPolicyType::TYPE_USER);
-        $policy->setName($handle->getFullName());
+        $policy
+          ->setType(PhabricatorPolicyType::TYPE_USER)
+          ->setName($handle->getFullName())
+          ->setRules(array(
+            array(
+              'action' => 'allow',
+              'rule' => PhabricatorUsersPolicyRule::class,
+              'value' => array($policy_identifier),
+            ),
+          ));
         break;
       case PhabricatorPolicyPHIDTypePolicy::TYPECONST:
         // TODO: This creates a weird handle-based version of a rule policy.
@@ -100,9 +122,17 @@ final class PhabricatorPolicy
         // any rules. It is used to render transactions, and might need some
         // cleanup.
         break;
+      case PhorgePolicyPHIDTypeNamedPolicy::TYPECONST:
+        // this is probably wrong, because we don't load any rules. Still might
+        // be useful for displays.
+        $policy
+          ->setType(PhabricatorPolicyType::TYPE_NAMED)
+          ->setName($handle->getFullName());
+        break;
       default:
-        $policy->setType(PhabricatorPolicyType::TYPE_MASKED);
-        $policy->setName($handle->getFullName());
+        $policy
+          ->setType(PhabricatorPolicyType::TYPE_MASKED)
+          ->setName($handle->getFullName());
         break;
     }
 
@@ -190,6 +220,7 @@ final class PhabricatorPolicy
         return 'fa-briefcase';
       case PhabricatorPolicyType::TYPE_CUSTOM:
       case PhabricatorPolicyType::TYPE_MASKED:
+      case PhabricatorPolicyType::TYPE_NAMED:
         return 'fa-certificate';
       default:
         return 'fa-question-circle';
@@ -227,9 +258,11 @@ final class PhabricatorPolicy
         ->withPHIDs(array($policy))
         ->executeOne();
 
-      return pht(
-        'Members of the project "%s" can take this action.',
-        $handle->getFullName());
+      if (!$handle->getPolicyFiltered()) {
+        return pht(
+          'Members of the project "%s" can take this action.',
+          $handle->getFullName());
+      }
     }
 
     return self::getOpaquePolicyExplanation($viewer, $policy);
@@ -256,10 +289,6 @@ final class PhabricatorPolicy
       case PhabricatorPolicies::POLICY_NOONE:
         return pht('By default, no one can take this action.');
       default:
-        $handle = id(new PhabricatorHandleQuery())
-          ->setViewer($viewer)
-          ->withPHIDs(array($policy))
-          ->executeOne();
 
         $type = phid_get_type($policy);
         if ($type == PhabricatorProjectProjectPHIDType::TYPECONST) {
@@ -268,6 +297,10 @@ final class PhabricatorPolicy
             'can not see this object, so the name of this project is '.
             'restricted.)');
         } else if ($type == PhabricatorPeopleUserPHIDType::TYPECONST) {
+          $handle = id(new PhabricatorHandleQuery())
+            ->setViewer($viewer)
+            ->withPHIDs(array($policy))
+            ->executeOne();
           return pht(
             '%s can take this action.',
             $handle->getFullName());
@@ -310,6 +343,10 @@ final class PhabricatorPolicy
     return ($this->getType() === PhabricatorPolicyType::TYPE_CUSTOM);
   }
 
+  public function isNamedPolicy() {
+    return ($this->getType() === PhabricatorPolicyType::TYPE_NAMED);
+  }
+
   public function isMaskedPolicy() {
     return ($this->getType() === PhabricatorPolicyType::TYPE_MASKED);
   }
@@ -335,7 +372,7 @@ final class PhabricatorPolicy
         if (class_exists($class)) {
           $classes[$class] = $class;
         }
-      } catch (Exception $ex) {
+      } catch (Throwable $ex) {
         continue;
       }
     }

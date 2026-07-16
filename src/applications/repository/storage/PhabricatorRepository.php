@@ -80,7 +80,7 @@ final class PhabricatorRepository extends PhabricatorRepositoryDAO
     $edit_policy = $app->getPolicy(DiffusionDefaultEditCapability::CAPABILITY);
     $push_policy = $app->getPolicy(DiffusionDefaultPushCapability::CAPABILITY);
 
-    $repository = id(new PhabricatorRepository())
+    $repository = id(new self())
       ->setViewPolicy($view_policy)
       ->setEditPolicy($edit_policy)
       ->setPushPolicy($push_policy)
@@ -1793,7 +1793,8 @@ final class PhabricatorRepository extends PhabricatorRepositoryDAO
    * services, returning raw URIs.
    *
    * @param PhabricatorUser $viewer Viewing user.
-   * @param map<string, mixed> $options Constraints on selectable services.
+   * @param array<string, mixed> $options Map of constraints on selectable
+   *   services.
    * @return string|null URI, or `null` for local repositories.
    */
   public function getAlmanacServiceURI(
@@ -2618,6 +2619,7 @@ final class PhabricatorRepository extends PhabricatorRepositoryDAO
       case DiffusionPushCapability::CAPABILITY:
         return $this->getPushPolicy();
     }
+    return PhabricatorPolicies::getFallbackPolicy($capability);
   }
 
   public function hasAutomaticCapability($capability, PhabricatorUser $user) {
@@ -2782,7 +2784,7 @@ final class PhabricatorRepository extends PhabricatorRepositoryDAO
     $permanent_rules = $this->getStringListForConduit($permanent_rules);
 
     $default_branch = $this->getDefaultBranch();
-    if (!strlen($default_branch)) {
+    if (!phutil_nonempty_string($default_branch)) {
       $default_branch = null;
     }
 
@@ -2794,6 +2796,13 @@ final class PhabricatorRepository extends PhabricatorRepositoryDAO
       'status' => $this->getStatus(),
       'isHosted' => $this->isHosted(),
       'isImporting' => (bool)$this->isImporting(),
+      'encoding' => $this->getDefaultTextEncoding(),
+      'staging' => array(
+        'supported' => $this->supportsStaging(),
+        'prefix' => 'phabricator',
+        'uri' => $this->getStagingURI(),
+      ),
+      'browseUri' => PhabricatorEnv::getProductionURI($this->getURI()),
       'almanacServicePHID' => $this->getAlmanacServicePHID(),
       'refRules' => array(
         'fetchRules' => $fetch_rules,

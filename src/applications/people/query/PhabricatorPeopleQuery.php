@@ -23,11 +23,8 @@ final class PhabricatorPeopleQuery
   private $namePrefixes;
   private $isEnrolledInMultiFactor;
 
-  private $needPrimaryEmail;
   private $needProfile;
-  private $needProfileImage;
   private $needAvailability;
-  private $needBadgeAwards;
   private $cacheKeys = array();
 
   public function withIDs(array $ids) {
@@ -111,11 +108,6 @@ final class PhabricatorPeopleQuery
 
   public function withIsEnrolledInMultiFactor($enrolled) {
     $this->isEnrolledInMultiFactor = $enrolled;
-    return $this;
-  }
-
-  public function needPrimaryEmail($need) {
-    $this->needPrimaryEmail = $need;
     return $this;
   }
 

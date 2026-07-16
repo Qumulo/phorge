@@ -22,6 +22,11 @@ final class HeraldTranscript extends HeraldDAO
 
   const TABLE_SAVED_HEADER = 'herald_savedheader';
 
+  /**
+   * Create the mail header value which lists applied Herald rules
+   *
+   * @return string
+   */
   public function getXHeraldRulesHeader() {
     $ids = array();
     foreach ($this->applyTranscripts as $xscript) {
@@ -55,7 +60,7 @@ final class HeraldTranscript extends HeraldDAO
       $header);
 
     queryfx(
-      id(new HeraldTranscript())->establishConnection('w'),
+      id(new self())->establishConnection('w'),
       'INSERT INTO %T (phid, header) VALUES (%s, %s)
         ON DUPLICATE KEY UPDATE header = VALUES(header)',
       self::TABLE_SAVED_HEADER,
@@ -79,7 +84,7 @@ final class HeraldTranscript extends HeraldDAO
 
   public static function loadXHeraldRulesHeader($phid) {
     $header = queryfx_one(
-      id(new HeraldTranscript())->establishConnection('r'),
+      id(new self())->establishConnection('r'),
       'SELECT * FROM %T WHERE phid = %s',
       self::TABLE_SAVED_HEADER,
       $phid);
@@ -222,6 +227,7 @@ final class HeraldTranscript extends HeraldDAO
       case PhabricatorPolicyCapability::CAN_VIEW:
         return PhabricatorPolicies::POLICY_USER;
     }
+    return PhabricatorPolicies::getFallbackPolicy($capability);
   }
 
   public function hasAutomaticCapability($capability, PhabricatorUser $viewer) {

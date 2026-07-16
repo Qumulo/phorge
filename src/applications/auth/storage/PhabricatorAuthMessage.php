@@ -53,6 +53,9 @@ final class PhabricatorAuthMessage
     return $this;
   }
 
+  /**
+   * @return PhabricatorAuthMessageType
+   */
   public function getMessageType() {
     return $this->assertAttached($this->messageType);
   }
@@ -102,9 +105,8 @@ final class PhabricatorAuthMessage
     switch ($capability) {
       case PhabricatorPolicyCapability::CAN_VIEW:
         return PhabricatorPolicies::getMostOpenPolicy();
-      default:
-        return false;
     }
+    return PhabricatorPolicies::getFallbackPolicy($capability);
   }
 
   public function hasAutomaticCapability($capability, PhabricatorUser $viewer) {

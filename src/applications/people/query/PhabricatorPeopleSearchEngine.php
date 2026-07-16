@@ -13,7 +13,6 @@ final class PhabricatorPeopleSearchEngine
 
   public function newQuery() {
     return id(new PhabricatorPeopleQuery())
-      ->needPrimaryEmail(true)
       ->needProfileImage(true);
   }
 
@@ -250,7 +249,8 @@ final class PhabricatorPeopleSearchEngine
     $request = $this->getRequest();
     $viewer = $this->requireViewer();
 
-    $list = new PHUIObjectItemListView();
+    $list = id(new PHUIObjectItemListView())
+      ->setViewer($viewer);
 
     $is_approval = ($query->getQueryKey() == 'approval');
 

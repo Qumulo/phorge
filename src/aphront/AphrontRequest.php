@@ -633,7 +633,11 @@ final class AphrontRequest extends Phobject {
     return $this->user;
   }
 
+  /** @return PhabricatorUser */
   public function getViewer() {
+    if (!$this->user) {
+      throw new PhutilInvalidStateException('setUser');
+    }
     return $this->user;
   }
 
@@ -883,7 +887,7 @@ final class AphrontRequest extends Phobject {
 
     $future = id(new HTTPSFuture($uri))
       ->addHeader('Host', self::getHost())
-      ->addHeader('X-Phabricator-Cluster', true)
+      ->addHeader('X-Phabricator-Cluster', '1')
       ->setMethod($_SERVER['REQUEST_METHOD'])
       ->write($input);
 

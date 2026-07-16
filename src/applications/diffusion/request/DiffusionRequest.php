@@ -56,7 +56,7 @@ abstract class DiffusionRequest extends Phobject {
    *   - `commit` Optional, commit identifier.
    *   - `line` Optional, line range.
    *
-   * @param   map                   $data See documentation.
+   * @param   array<string, mixed>   $data See documentation.
    * @return  DiffusionRequest|null New request object, or null if none is
    *   found.
    * @task new
@@ -150,6 +150,7 @@ abstract class DiffusionRequest extends Phobject {
       ->setViewer($viewer)
       ->withIdentifiers(array($identifier))
       ->needProfileImage(true)
+      ->needProjectPHIDs(true)
       ->needURIs(true);
 
     if ($need_edit) {
@@ -204,7 +205,7 @@ abstract class DiffusionRequest extends Phobject {
   /**
    * Internal. Use @{method:newFromDictionary}, not this method.
    *
-   * @param map $data Map of parsed data.
+   * @param array $data Map of parsed data.
    * @return void
    * @task new
    */
@@ -469,7 +470,7 @@ abstract class DiffusionRequest extends Phobject {
    *
    * @param   string  $blob URI blob.
    * @param   bool    $supports_branches True if this VCS supports branches.
-   * @return  map     Parsed URI.
+   * @return  array   Components of the parsed URI.
    *
    * @task uri
    */

@@ -31,8 +31,9 @@ abstract class PhabricatorTestCase extends PhutilTestCase {
    */
   const PHABRICATOR_TESTCONFIG_BUILD_STORAGE_FIXTURES = 'storage-fixtures';
 
-  private $configuration;
   private $env;
+
+  private $currentTest;
 
   private static $storageFixtureReferences = 0;
   private static $storageFixture;
@@ -79,7 +80,18 @@ abstract class PhabricatorTestCase extends PhutilTestCase {
       }
     }
 
+    register_shutdown_function(array($this, 'handleTimeout'));
+
     ++self::$testsAreRunning;
+  }
+
+  private function handleTimeout() {
+    if (!self::$testsAreRunning || !$this->currentTest) {
+      return;
+    }
+
+    $classname = get_class($this);
+    echo "\nTIMEOUT while running test: {$classname}::{$this->currentTest}\n";
   }
 
   public function didRunTestCases(array $test_cases) {
@@ -89,6 +101,8 @@ abstract class PhabricatorTestCase extends PhutilTestCase {
         self::$storageFixture = null;
       }
     }
+
+    set_time_limit(0);
 
     --self::$testsAreRunning;
   }
@@ -152,7 +166,7 @@ abstract class PhabricatorTestCase extends PhutilTestCase {
 
     try {
       unset($this->env);
-    } catch (Exception $ex) {
+    } catch (Throwable $ex) {
       throw new Exception(
         pht(
           'Some test called %s, but is still holding '.
@@ -167,6 +181,9 @@ abstract class PhabricatorTestCase extends PhutilTestCase {
     if ($config[self::PHABRICATOR_TESTCONFIG_BUILD_STORAGE_FIXTURES]) {
       LiskDAO::beginIsolateAllLiskEffectsToTransactions();
     }
+
+    $this->currentTest = $test;
+    set_time_limit(4); // this resets the limit
   }
 
   protected function didRunOneTest($test) {

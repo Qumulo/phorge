@@ -2,8 +2,6 @@
 
 abstract class PhabricatorController extends AphrontController {
 
-  private $handles;
-
   public function shouldRequireLogin() {
     return true;
   }
@@ -63,6 +61,16 @@ abstract class PhabricatorController extends AphrontController {
 
   public function willBeginExecution() {
     $request = $this->getRequest();
+
+    // Configure global user-agent
+    $user_agent =
+      PhabricatorEnv::getEnvConfigIfExists('phabricator.user-agent');
+    if ($user_agent === null) {
+      $user_agent =
+        PhabricatorEnv::getEnvConfig('phabricator.base-uri')
+          .' '.PlatformSymbols::getPlatformServerName().'/1.0';
+    }
+    BaseHTTPFuture::setDefaultUserAgent($user_agent);
 
     if ($request->getUser()) {
       // NOTE: Unit tests can set a user explicitly. Normal requests are not
@@ -448,9 +456,7 @@ abstract class PhabricatorController extends AphrontController {
     }
 
     $viewer = $this->getRequest()->getUser();
-    if ($viewer) {
-      $page->setViewer($viewer);
-    }
+    $page->setViewer($viewer);
 
     return $page;
   }
@@ -492,6 +498,13 @@ abstract class PhabricatorController extends AphrontController {
       $panels = PHUICurtainExtension::buildExtensionPanels($viewer, $object);
       foreach ($panels as $panel) {
         $curtain->addPanel($panel);
+      }
+
+      $actions = PHUIActionListExtension::buildExtensionActions(
+        $viewer,
+        $object);
+      foreach ($actions as $action) {
+        $action_list->addAction($action);
       }
     }
 

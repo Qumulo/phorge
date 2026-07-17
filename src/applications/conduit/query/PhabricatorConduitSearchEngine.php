@@ -146,8 +146,9 @@ final class PhabricatorConduitSearchEngine
         if ($list) {
           $out[] = $list;
         }
-        $list = new PHUIObjectItemListView();
-        $list->setHeader($app);
+        $list = id(new PHUIObjectItemListView())
+          ->setViewer($viewer)
+          ->setHeader($app);
 
         $app_object = $method->getApplication();
         if ($app_object) {
@@ -159,10 +160,12 @@ final class PhabricatorConduitSearchEngine
 
       $method_name = $method->getAPIMethodName();
 
+      $summary = new PHUIRemarkupView($viewer, $method->getMethodSummary());
+
       $item = id(new PHUIObjectItemView())
         ->setHeader($method_name)
         ->setHref($this->getApplicationURI('method/'.$method_name.'/'))
-        ->addAttribute($method->getMethodSummary());
+        ->addAttribute($summary);
 
       switch ($method->getMethodStatus()) {
         case ConduitAPIMethod::METHOD_STATUS_STABLE:

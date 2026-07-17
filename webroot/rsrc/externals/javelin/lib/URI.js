@@ -1,10 +1,11 @@
 /**
- * @provides javelin-uri
  * @requires javelin-install
  *           javelin-util
  *           javelin-stratcom
+ * @provides javelin-uri
  *
  * @javelin-installs JX.$U
+ * @javelin-installs JX.URI
  *
  * @javelin
  */
@@ -16,7 +17,7 @@
  *   JX.$U('https://example.com/').getDomain();
  *
  * @param string            Unparsed URI.
- * @return  @{class:JX.URI} JX.URI instance.
+ * @return JX.URI           JX.URI instance.
  */
 JX.$U = function(uri) {
   return new JX.URI(uri);
@@ -131,7 +132,7 @@ JX.install('URI', {
      * Remove a query key by setting it undefined
      *
      * @param map
-     * @return @{JX.URI} self
+     * @return JX.URI self
      */
     addQueryParams : function(map) {
       JX.copy(this.getQueryParams(), map);
@@ -144,7 +145,7 @@ JX.install('URI', {
      *
      * @param string
      * @param wild
-     * @return @{JX.URI} self
+     * @return JX.URI self
      */
     setQueryParam : function(key, value) {
       var map = {};

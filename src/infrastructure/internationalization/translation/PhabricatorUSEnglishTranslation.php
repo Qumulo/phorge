@@ -794,7 +794,7 @@ final class PhabricatorUSEnglishTranslation
       ),
 
       '%s edited task(s), added %s: %s; removed %s: %s.' =>
-        '%s edited tasks, added: %3$s; removed: $5$s',
+        '%s edited tasks, added: %3$s; removed: %5$s',
 
       '%s edited task(s) for %s, added %s: %s; removed %s: %s.' =>
         '%s edited tasks for %s: added: %4$s; removed: %6$s.',
@@ -945,11 +945,6 @@ final class PhabricatorUSEnglishTranslation
       '%d related link(s):' => array(
         'Related link:',
         'Related links:',
-      ),
-
-      'You have %d unpaid invoice(s).' => array(
-        'You have an unpaid invoice.',
-        'You have unpaid invoices.',
       ),
 
       'This server is configured with an email domain whitelist (in %s), so '.
@@ -1412,74 +1407,6 @@ final class PhabricatorUSEnglishTranslation
       '%s accepted this revision as %s reviewer(s): %s.' =>
         '%s accepted this revision as: %3$s.',
 
-      '%s added %s merchant manager(s): %s.' => array(
-        array(
-          '%s added a merchant manager: %3$s.',
-          '%s added merchant managers: %3$s.',
-        ),
-      ),
-
-      '%s added %s merchant manager(s) to %s: %s.' => array(
-        array(
-          '%s added a merchant manager to %3$s: %4$s.',
-          '%s added merchant managers to %3$s: %4$s.',
-        ),
-      ),
-
-      '%s removed %s merchant manager(s): %s.' => array(
-        array(
-          '%s removed a merchant manager: %3$s.',
-          '%s removed merchant managers: %3$s.',
-        ),
-      ),
-
-      '%s removed %s merchant manager(s) from %s: %s.' => array(
-        array(
-          '%s removed a merchant manager from %s: %4$s.',
-          '%s removed merchant managers from %s: %4$s.',
-        ),
-      ),
-      '%s edited %s merchant manager(s), added %s: %s; removed %s: %s.' =>
-        '%s edited merchant managers, added: %4$s; removed: %6$s.',
-      '%s edited %s merchant manager(s) for %s, '.
-          'added %s: %s; removed %s: %s.' =>
-        '%s edited merchant managers for %3$s, added: %5$s; removed: %7$s.',
-
-      '%s added %s account manager(s): %s.' => array(
-        array(
-          '%s added an account manager: %3$s.',
-          '%s added account managers: %3$s.',
-        ),
-      ),
-
-      '%s added %s account manager(s) to %s: %s.' => array(
-        array(
-          '%s added an account manager to %3$s: %4$s.',
-          '%s added account managers to %3$s: %4$s.',
-        ),
-      ),
-
-      '%s removed %s account manager(s): %s.' => array(
-        array(
-          '%s removed an account manager: %3$s.',
-          '%s removed account managers: %3$s.',
-        ),
-      ),
-
-      '%s removed %s account manager(s) from %s: %s.' => array(
-        array(
-          '%s removed an account manager from %3$s: %4$s.',
-          '%s removed account managers from %3$s: %4$s.',
-        ),
-      ),
-
-      '%s edited %s account manager(s), added %s: %s; removed %s: %s.' =>
-       '%s edited account managers, added: %4$s; removed: %6$s;',
-
-      '%s edited %s account manager(s) for %s, added %s: %s; removed %s: %s.' =>
-       '%s edited account managers for %3$s, added: %5$s; removed: %7$s;',
-
-
       'You are about to apply a bulk edit which will affect '.
       '%s object(s).' => array(
         'You are about to apply a bulk edit to a single object.',
@@ -1904,14 +1831,6 @@ final class PhabricatorUSEnglishTranslation
             'Respecting "%s": waiting for %s seconds to poll GitHub.',
         ),
       ),
-      'You can view this account because you control '.
-      '%s merchant(s) it has a relationship with: %s.' =>
-      array(
-          'You can view this account because you control '.
-          'a merchant it has a relationship with: %2$s.',
-          'You can view this account because you control '.
-          '%s merchants it has a relationship with: %s.',
-      ),
       'Used on %s active column(s).' =>
       array(
           'Used on %s active column.',
@@ -2093,9 +2012,9 @@ final class PhabricatorUSEnglishTranslation
          'Source names must not be longer than %s character.',
          'Source names must not be longer than %s characters.',
       ),
-      'Mock image names must not be longer than %s character(s).' => array(
-         'Mock image names must not be longer than %s character.',
-         'Mock image names must not be longer than %s characters.',
+      'Mock image titles must not be longer than %s character(s).' => array(
+         'Mock image titles must not be longer than %s character.',
+         'Mock image titles must not be longer than %s characters.',
       ),
       'Mock names must not be longer than %s character(s).' => array(
          'Mock names must not be longer than %s character.',
@@ -2287,10 +2206,6 @@ final class PhabricatorUSEnglishTranslation
       'Done, compacted %s edge transactions.' => array(
         'Done, compacted %s edge transaction.',
         'Done, compacted %s edge transactions.',
-      ),
-      '%s line(s)' => array(
-        '%s line',
-        '%s line(s)',
       ),
       'Adjusted **%s** create statements and **%s** use statements.' => array(
         array(

@@ -146,6 +146,11 @@ abstract class PhabricatorEditEngine
   abstract public function getEngineApplicationClass();
   abstract protected function buildCustomEditFields($object);
 
+  public function getEditFieldsForConduit() {
+    $object = $this->newEditableObject();
+    return $this->buildCustomEditFields($object);
+  }
+
   public function getFieldsForConfig(
     PhabricatorEditEngineConfiguration $config) {
 
@@ -239,7 +244,7 @@ abstract class PhabricatorEditEngine
   final public function supportsSubtypes() {
     try {
       $object = $this->newEditableObject();
-    } catch (Exception $ex) {
+    } catch (Throwable $ex) {
       return false;
     }
 
@@ -257,13 +262,17 @@ abstract class PhabricatorEditEngine
   /**
    * @task text
    */
-  abstract public function getEngineName();
+  public function getEngineName() {
+    return $this->getObjectName();
+  }
 
 
   /**
    * @task text
    */
-  abstract protected function getObjectCreateTitleText($object);
+  protected function getObjectCreateTitleText($object) {
+    return $this->getObjectCreateShortText();
+  }
 
   /**
    * @task text
@@ -282,7 +291,10 @@ abstract class PhabricatorEditEngine
   /**
    * @task text
    */
-  abstract protected function getObjectCreateShortText();
+  protected function getObjectCreateShortText() {
+    $object_name = $this->getObjectName();
+    return pht('Create %s', $object_name);
+  }
 
 
   /**
@@ -294,7 +306,10 @@ abstract class PhabricatorEditEngine
   /**
    * @task text
    */
-  abstract protected function getObjectEditShortText($object);
+  protected function getObjectEditShortText($object) {
+    $object_name = $this->getObjectName();
+    return pht('Edit %s', $object_name);
+  }
 
 
   /**
@@ -386,7 +401,10 @@ abstract class PhabricatorEditEngine
    * @return string Human-readable description of the engine.
    * @task text
    */
-  abstract public function getSummaryHeader();
+  public function getSummaryHeader() {
+    $object_name = $this->getObjectName();
+    return pht('Edit %s', $object_name);
+  }
 
 
   /**
@@ -395,7 +413,9 @@ abstract class PhabricatorEditEngine
    * @return string Human-readable description of the engine.
    * @task text
    */
-  abstract public function getSummaryText();
+  public function getSummaryText() {
+    return $this->getSummaryHeader();
+  }
 
 
 
@@ -417,6 +437,11 @@ abstract class PhabricatorEditEngine
       ->withEngineKeys(array($this->getEngineKey()));
   }
 
+  /**
+   * @param PhabricatorEditEngineConfigurationQuery $query
+   * @param string|null $sort_method
+   * @return PhabricatorEditEngineConfiguration|null
+   */
   private function loadEditEngineConfigurationWithQuery(
     PhabricatorEditEngineConfigurationQuery $query,
     $sort_method) {
@@ -614,7 +639,7 @@ abstract class PhabricatorEditEngine
   public function getCreateURI($form_key) {
     try {
       $create_uri = $this->getEditURI(null, "form/{$form_key}/");
-    } catch (Exception $ex) {
+    } catch (Throwable $ex) {
       $create_uri = null;
     }
 
@@ -1570,7 +1595,7 @@ abstract class PhabricatorEditEngine
       $disabled = false;
 
       $dropdown = id(new PhabricatorActionListView())
-        ->setUser($viewer);
+        ->setViewer($viewer);
 
       foreach ($specs as $spec) {
         $dropdown->addAction(
@@ -1671,9 +1696,12 @@ abstract class PhabricatorEditEngine
   final public function buildEditEngineCommentView($object) {
     $config = $this->loadDefaultEditConfiguration($object);
 
-    if (!$config) {
+    if (!$config ||
+        ($object instanceof PhorgeRestrictableInteractionInterface &&
+        $object->disallowInteractions())) {
       // TODO: This just nukes the entire comment form if you don't have access
-      // to any edit forms. We might want to tailor this UX a bit.
+      // to any edit forms, or if the object is temporary.
+      // We might want to tailor this UX a bit.
       return id(new PhabricatorApplicationTransactionCommentView())
         ->setNoPermission(true);
     }
@@ -1815,7 +1843,6 @@ abstract class PhabricatorEditEngine
   private function buildParametersResponse($object) {
     $controller = $this->getController();
     $viewer = $this->getViewer();
-    $request = $controller->getRequest();
     $fields = $this->buildEditFields($object);
 
     $crumbs = $this->buildCrumbs($object);
@@ -1830,11 +1857,11 @@ abstract class PhabricatorEditEngine
       ->setHeader($header_text);
 
     $help_view = id(new PhabricatorApplicationEditHTTPParameterHelpView())
-      ->setUser($viewer)
+      ->setViewer($viewer)
       ->setFields($fields);
 
     $document = id(new PHUIDocumentView())
-      ->setUser($viewer)
+      ->setViewer($viewer)
       ->setHeader($header)
       ->appendChild($help_view);
 
@@ -2116,7 +2143,7 @@ abstract class PhabricatorEditEngine
       $raw_view_data = $request->getStr('viewData');
       try {
         $view_data = phutil_json_decode($raw_view_data);
-      } catch (Exception $ex) {
+      } catch (Throwable $ex) {
         $view_data = array();
       }
 
@@ -2295,7 +2322,7 @@ abstract class PhabricatorEditEngine
    * @param ConduitAPIRequest $request The request.
    * @param array<array{type:string,value:mixed}> $xactions Raw conduit
    *                                              transactions.
-   * @param list<PhabricatorEditType> $types Supported edit types.
+   * @param array<string, PhabricatorEditType> $types Supported edit types.
    * @param PhabricatorApplicationTransaction $template Template transaction.
    * @return list<PhabricatorApplicationTransaction> Generated transactions.
    * @task conduit
@@ -2343,7 +2370,7 @@ abstract class PhabricatorEditEngine
         $value = $parameter_type->getValue($xaction, 'value', $is_strict);
         $value = $type->getTransactionValueFromConduit($value);
         $xaction['value'] = $value;
-      } catch (Exception $ex) {
+      } catch (Throwable $ex) {
         throw new Exception(
           pht(
             'Exception when processing transaction of type "%s": %s',
@@ -2367,7 +2394,7 @@ abstract class PhabricatorEditEngine
 
 
   /**
-   * @return map<string, PhabricatorEditType>
+   * @return array<string, PhabricatorEditType>
    * @task conduit
    */
   private function getConduitEditTypesFromFields(array $fields) {
@@ -2386,6 +2413,11 @@ abstract class PhabricatorEditEngine
     return $types;
   }
 
+  /**
+   * @return array<PhabricatorEditType> Array of subclasses of
+   *   PhabricatorEditType
+   * @task conduit
+   */
   public function getConduitEditTypes() {
     $config = $this->loadDefaultConfiguration();
     if (!$config) {
@@ -2397,6 +2429,12 @@ abstract class PhabricatorEditEngine
     return $this->getConduitEditTypesFromFields($fields);
   }
 
+  /**
+   * Get all EditEngines of all applications. (Use PhabricatorEditEngineQuery
+   * to get only EditEngines of installed applications installed.)
+   *
+   * @array<PhabricatorEditEngine>
+   */
   final public static function getAllEditEngines() {
     return id(new PhutilClassMapQuery())
       ->setAncestorClass(self::class)
@@ -2535,7 +2573,8 @@ abstract class PhabricatorEditEngine
       return $fields;
     }
 
-    if (!$this->getSelectedPage()) {
+    $selected_page = $this->getSelectedPage();
+    if (!$selected_page) {
       return $fields;
     }
 
@@ -2563,12 +2602,7 @@ abstract class PhabricatorEditEngine
       $page_map[$default_key][$field_key] = $field;
     }
 
-    $page = $this->getSelectedPage();
-    if (!$page) {
-      $page = head($pages);
-    }
-
-    $selected_key = $page->getKey();
+    $selected_key = $selected_page->getKey();
     return $page_map[$selected_key];
   }
 
@@ -2806,6 +2840,7 @@ abstract class PhabricatorEditEngine
       case PhabricatorPolicyCapability::CAN_EDIT:
         return $this->getCreateNewObjectPolicy();
     }
+    return PhabricatorPolicies::getFallbackPolicy($capability);
   }
 
   public function hasAutomaticCapability($capability, PhabricatorUser $viewer) {

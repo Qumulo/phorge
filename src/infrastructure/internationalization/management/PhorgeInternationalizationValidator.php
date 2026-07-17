@@ -148,7 +148,7 @@ final class PhorgeInternationalizationValidator extends Phobject {
         $spec['types'],
         0));
       // Check for missing branches in US english
-      if (str_contains($string, '(s)')) {
+      if (strpos($string, '(s)') !== false) {
         if (!isset($keyed_translations[$string]['en_US'])) {
           foreach ($spec['types'] as $type) {
             if ($type === 'number') {
@@ -195,7 +195,7 @@ final class PhorgeInternationalizationValidator extends Phobject {
         throw new Exception(pht(
           'Strings have not yet been extracted for library %s. '.
           'Run `%s` for that library first to extract them or '.
-          're-run with `%s` to automatically extract missing strngs.',
+          're-run with `%s` to automatically extract missing strings.',
           $lib,
           'bin/i18n extract',
           '--extract'));

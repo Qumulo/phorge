@@ -6,13 +6,10 @@ final class PHUIFeedStoryView extends AphrontView {
   private $image;
   private $imageHref;
   private $appIcon;
-  private $phid;
   private $epoch;
   private $viewed;
   private $href;
-  private $pontification = null;
   private $tokenBar = array();
-  private $projects = array();
   private $actions = array();
   private $chronologicalKey;
   private $tags;
@@ -107,11 +104,6 @@ final class PHUIFeedStoryView extends AphrontView {
     return $this->showTimestamp;
   }
 
-  public function addProject($project) {
-    $this->projects[] = $project;
-    return $this;
-  }
-
   public function addAction(PHUIIconView $action) {
     $this->actions[] = $action;
     return $this;
@@ -138,6 +130,10 @@ final class PHUIFeedStoryView extends AphrontView {
     return $this->href;
   }
 
+  /**
+   * @param PhabricatorUser|null $user
+   * @return PhutilSafeHTML
+   */
   public function renderNotification($user) {
     $classes = array(
       'phabricator-notification',

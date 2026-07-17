@@ -11,13 +11,14 @@ final class PhrictionHistoryConduitAPIMethod extends PhrictionConduitAPIMethod {
   }
 
   public function getMethodStatus() {
-    return self::METHOD_STATUS_FROZEN;
+    return self::METHOD_STATUS_DEPRECATED;
   }
 
   public function getMethodStatusDescription() {
     return pht(
-      'This method is frozen and will eventually be deprecated. New code '.
-      'should use "phriction.content.search" instead.');
+      'This method has been deprecated since %s in favor of %s.',
+      '04/2026',
+      'phriction.content.search');
   }
 
   protected function defineParamTypes() {
@@ -51,8 +52,8 @@ final class PhrictionHistoryConduitAPIMethod extends PhrictionConduitAPIMethod {
     }
 
     $content = id(new PhrictionContent())->loadAllWhere(
-      'documentID = %d ORDER BY version DESC',
-      $document->getID());
+      'documentPHID = %s ORDER BY version DESC',
+      $document->getPHID());
 
     $results = array();
     foreach ($content as $version) {

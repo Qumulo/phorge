@@ -315,15 +315,6 @@ abstract class PhabricatorInlineCommentController
           $inline->setDocumentEngineKey($document_engine_key);
         }
 
-        // If you own this object, mark your own inlines as "Done" by default.
-        $owner_phid = $this->loadObjectOwnerPHID($inline);
-        if ($owner_phid) {
-          if ($viewer->getPHID() == $owner_phid) {
-            $fixed_state = PhabricatorInlineComment::STATE_DRAFT;
-            $inline->setFixedState($fixed_state);
-          }
-        }
-
         if ($this->hasContentState()) {
           $this->updateCommentContentState($inline);
         }

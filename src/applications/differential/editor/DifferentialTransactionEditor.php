@@ -171,6 +171,11 @@ final class DifferentialTransactionEditor
         case DifferentialRevisionUpdateTransaction::TRANSACTIONTYPE:
           $want_downgrade[] = DifferentialReviewerStatus::STATUS_ACCEPTED;
           $want_downgrade[] = DifferentialReviewerStatus::STATUS_REJECTED;
+          if ($object->isChangePlanned()) {
+            // Accepted is dropped when transitioning from planned change
+            // to updating a revision
+            $must_downgrade[] = DifferentialReviewerStatus::STATUS_ACCEPTED;
+          }
           break;
         case DifferentialRevisionRequestReviewTransaction::TRANSACTIONTYPE:
           if (!$object->isChangePlanned()) {

@@ -11,6 +11,10 @@ When a revision author updates an "Accepted" revision in Differential, the
 state remains "Accepted". This can be confusing if you expect the revision to
 change to "Needs Review" when it is updated.
 
+One case is excepted. If the author has planned changes, updating the revision
+returns it to "Needs Review", because the new diff is the planned work and not
+a minor amendment to what the reviewer read.
+
 Although this behavior is configurable, we think stickiness is a good behavior:
 stickiness encourage authors to update revisions when they make minor changes
 after a revision is accepted. For example, a reviewer may accept a change with a

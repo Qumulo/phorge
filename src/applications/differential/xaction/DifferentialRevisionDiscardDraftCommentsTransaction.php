@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Set whether a revision discards its draft comments when it publishes.
+ *
+ * This carries an explicit value, so callers are idempotent. The action menu
+ * uses @{class:DifferentialRevisionToggleDiscardCommentsTransaction} instead,
+ * which flips the stored value.
+ */
 final class DifferentialRevisionDiscardDraftCommentsTransaction
   extends DifferentialRevisionTransactionType {
 
@@ -16,6 +23,14 @@ final class DifferentialRevisionDiscardDraftCommentsTransaction
 
   public function applyInternalEffects($object, $value) {
     $object->setDiscardDraftComments($value);
+  }
+
+  public function getIcon() {
+    return 'fa-eraser';
+  }
+
+  public function getColor() {
+    return 'grey';
   }
 
   public function getTitle() {

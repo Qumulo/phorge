@@ -76,6 +76,10 @@ final class DifferentialRevision extends DifferentialDAO
     $initial_state = DifferentialRevisionStatus::DRAFT;
     $should_broadcast = false;
 
+    $discard_comments = $actor->compareUserSetting(
+      PhabricatorDiscardDraftCommentsSetting::SETTINGKEY,
+      PhabricatorDiscardDraftCommentsSetting::VALUE_DISCARD_DRAFT_COMMENTS);
+
     return id(new self())
       ->setViewPolicy($view_policy)
       ->setAuthorPHID($actor->getPHID())
@@ -83,7 +87,8 @@ final class DifferentialRevision extends DifferentialDAO
       ->attachActiveDiff(null)
       ->attachReviewers(array())
       ->setModernRevisionStatus($initial_state)
-      ->setShouldBroadcast($should_broadcast);
+      ->setShouldBroadcast($should_broadcast)
+      ->setDiscardDraftComments($discard_comments);
   }
 
   protected function getConfiguration() {

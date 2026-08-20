@@ -353,6 +353,24 @@ final class DifferentialRevisionEditEngine
       ->setConduitTypeDescription(pht('New "Hold as Draft" setting.'))
       ->setValue($object->getHoldAsDraft());
 
+    $fields[] = id(new PhabricatorBoolEditField())
+      ->setKey('discard-comments')
+      ->setLabel(pht('Discard Draft Comments'))
+      ->setOptions(
+        pht('Keep Draft Comments'),
+        pht('Discard Draft Comments On Publish'))
+      ->setTransactionType(
+        DifferentialRevisionDiscardDraftCommentsTransaction::TRANSACTIONTYPE)
+      ->setDescription(
+        pht('Discard draft comments when this revision publishes.'))
+      ->setConduitDescription(
+        pht(
+          'Discard every comment made while this revision was a draft at the '.
+          'moment it publishes for review.'))
+      ->setConduitTypeDescription(
+        pht('New "Discard Draft Comments" setting.'))
+      ->setValue($object->getDiscardDraftComments());
+
     $fields[] = id(new DifferentialInlineEditField())
       ->setKey('inline')
       ->setLabel(pht('Inline Comment'))

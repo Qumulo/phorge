@@ -30,6 +30,12 @@ final class PhabricatorApplicationTransactionCommentHistoryController
       return new Aphront400Response();
     }
 
+    if ($xaction->getComment()->getIsDiscarded()) {
+      // You can't view history of a discarded comment: older versions would
+      // hand back the content it was discarded to remove.
+      return new Aphront400Response();
+    }
+
     $comments = id(new PhabricatorApplicationTransactionTemplatedCommentQuery())
       ->setViewer($viewer)
       ->setTemplate($xaction->getApplicationTransactionCommentObject())

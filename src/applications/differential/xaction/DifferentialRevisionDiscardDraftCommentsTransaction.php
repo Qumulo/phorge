@@ -25,6 +25,34 @@ final class DifferentialRevisionDiscardDraftCommentsTransaction
     $object->setDiscardDraftComments($value);
   }
 
+  public function validateTransactions($object, array $xactions) {
+    $errors = array();
+    $actor = $this->getActor();
+
+    // The default revision edit policy is "all users", so without this check
+    // anyone could arm the discard on somebody else's draft and destroy a
+    // conversation they have no part in.
+    $actor_phid = $actor->getPHID();
+    if (!$actor_phid) {
+      // Herald and other system actors act without a user identity.
+      return $errors;
+    }
+
+    if ($actor_phid === $object->getAuthorPHID()) {
+      return $errors;
+    }
+
+    foreach ($xactions as $xaction) {
+      $errors[] = $this->newInvalidError(
+        pht(
+          'Only the author of a revision can change whether it discards the '.
+          'comments made while it was a draft.'),
+        $xaction);
+    }
+
+    return $errors;
+  }
+
   public function getIcon() {
     return 'fa-eraser';
   }

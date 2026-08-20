@@ -356,6 +356,7 @@ final class DifferentialRevisionEditEngine
     $fields[] = id(new PhabricatorBoolEditField())
       ->setKey('discard-comments')
       ->setLabel(pht('Discard Draft Comments'))
+      ->setIsFormField(false)
       ->setOptions(
         pht('Keep Draft Comments'),
         pht('Discard Draft Comments On Publish'))

@@ -57,6 +57,7 @@ final class DifferentialRevision extends DifferentialDAO
 
   const PROPERTY_CLOSED_FROM_ACCEPTED = 'wasAcceptedBeforeClose';
   const PROPERTY_DRAFT_HOLD = 'draft.hold';
+  const PROPERTY_DISCARD_DRAFT_COMMENTS = 'draft.discardComments';
   const PROPERTY_SHOULD_BROADCAST = 'draft.broadcast';
   const PROPERTY_LINES_ADDED = 'lines.added';
   const PROPERTY_LINES_REMOVED = 'lines.removed';
@@ -680,6 +681,16 @@ final class DifferentialRevision extends DifferentialDAO
 
   public function setHoldAsDraft($hold) {
     return $this->setProperty(self::PROPERTY_DRAFT_HOLD, $hold);
+  }
+
+  public function getDiscardDraftComments() {
+    return $this->getProperty(self::PROPERTY_DISCARD_DRAFT_COMMENTS, false);
+  }
+
+  public function setDiscardDraftComments($discard) {
+    return $this->setProperty(
+      self::PROPERTY_DISCARD_DRAFT_COMMENTS,
+      $discard);
   }
 
   public function getShouldBroadcast() {

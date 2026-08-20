@@ -596,6 +596,13 @@ abstract class PhabricatorApplicationTransaction
   }
 
   public function shouldHide() {
+    // Discarded comments are the one exception to the rule below: the author
+    // cleared the draft-phase conversation when the object published, so the
+    // timeline must not keep a placeholder for each one.
+    if ($this->getMetadataValue('discarded.comment')) {
+      return true;
+    }
+
     // Never hide comments.
     if ($this->hasComment()) {
       return false;

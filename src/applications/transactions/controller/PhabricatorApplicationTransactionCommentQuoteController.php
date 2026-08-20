@@ -23,6 +23,10 @@ final class PhabricatorApplicationTransactionCommentQuoteController
       return new Aphront400Response();
     }
 
+    if ($xaction->getComment()->getIsDiscarded()) {
+      return new Aphront400Response();
+    }
+
     if (!$xaction->hasComment()) {
       return new Aphront404Response();
     }

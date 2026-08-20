@@ -401,7 +401,57 @@ final class DifferentialTransactionEditor
 
     $xactions = $this->updateReviewStatus($object, $xactions);
     $this->markReviewerComments($object, $xactions);
+    $xactions = $this->recordSeededDiscardSetting($object, $xactions);
     $xactions = $this->discardDraftComments($object, $xactions);
+
+    return $xactions;
+  }
+
+  /**
+   * Say on the timeline that a new draft will discard its comments.
+   *
+   * A revision seeded from the author's setting is created with the property
+   * already set, so nothing on the timeline tells a reader that the draft
+   * conversation is going to vanish when it publishes.
+   */
+  private function recordSeededDiscardSetting(
+    DifferentialRevision $revision,
+    array $xactions) {
+
+    if (!$this->getIsNewObject()) {
+      return $xactions;
+    }
+
+    if (!$revision->getDiscardDraftComments()) {
+      return $xactions;
+    }
+
+    // A revision which publishes as it is created has no draft phase to
+    // describe.
+    if ($revision->getShouldBroadcast()) {
+      return $xactions;
+    }
+
+    $set_type =
+      DifferentialRevisionDiscardDraftCommentsTransaction::TRANSACTIONTYPE;
+    $toggle_type =
+      DifferentialRevisionToggleDiscardCommentsTransaction::TRANSACTIONTYPE;
+
+    foreach ($xactions as $xaction) {
+      $type = $xaction->getTransactionType();
+      if ($type === $set_type || $type === $toggle_type) {
+        // The author asked for this explicitly, so it already reads on the
+        // timeline.
+        return $xactions;
+      }
+    }
+
+    $xaction = id(new DifferentialTransaction())
+      ->setTransactionType($set_type)
+      ->setOldValue(false)
+      ->setNewValue(true);
+
+    $xactions[] = $this->populateTransaction($revision, $xaction)->save();
 
     return $xactions;
   }

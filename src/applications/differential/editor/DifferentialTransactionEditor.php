@@ -510,8 +510,12 @@ final class DifferentialTransactionEditor
         continue;
       }
 
+      // A comment an administrator already removed keeps that state: it is
+      // not rendering anyway, and overwriting it would lose the reason it
+      // went away. Its timeline entry is still draft-phase noise, so the
+      // transaction is hidden either way.
       $comment = $old_xaction->getComment();
-      if ($comment) {
+      if ($comment && !$comment->getIsDeleted()) {
         $comment->setIsDiscarded(true)->save();
         $comment_count++;
       }

@@ -25,6 +25,11 @@ final class PhabricatorApplicationTransactionCommentEditController
       return new Aphront400Response();
     }
 
+    if ($xaction->getComment()->getIsDiscarded()) {
+      // You can't edit a discarded comment.
+      return new Aphront400Response();
+    }
+
     $phid = $xaction->getObjectPHID();
     $handles = $viewer->loadHandles(array($phid));
     $obj_handle = $handles[$phid];

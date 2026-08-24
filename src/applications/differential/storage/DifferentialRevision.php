@@ -57,6 +57,7 @@ final class DifferentialRevision extends DifferentialDAO
 
   const PROPERTY_CLOSED_FROM_ACCEPTED = 'wasAcceptedBeforeClose';
   const PROPERTY_DRAFT_HOLD = 'draft.hold';
+  const PROPERTY_DISCARD_DRAFT_COMMENTS = 'draft.discardComments';
   const PROPERTY_SHOULD_BROADCAST = 'draft.broadcast';
   const PROPERTY_LINES_ADDED = 'lines.added';
   const PROPERTY_LINES_REMOVED = 'lines.removed';
@@ -75,6 +76,10 @@ final class DifferentialRevision extends DifferentialDAO
     $initial_state = DifferentialRevisionStatus::DRAFT;
     $should_broadcast = false;
 
+    $discard_comments = $actor->compareUserSetting(
+      PhabricatorDiscardDraftCommentsSetting::SETTINGKEY,
+      PhabricatorDiscardDraftCommentsSetting::VALUE_DISCARD_DRAFT_COMMENTS);
+
     return id(new self())
       ->setViewPolicy($view_policy)
       ->setAuthorPHID($actor->getPHID())
@@ -82,7 +87,8 @@ final class DifferentialRevision extends DifferentialDAO
       ->attachActiveDiff(null)
       ->attachReviewers(array())
       ->setModernRevisionStatus($initial_state)
-      ->setShouldBroadcast($should_broadcast);
+      ->setShouldBroadcast($should_broadcast)
+      ->setDiscardDraftComments($discard_comments);
   }
 
   protected function getConfiguration() {
@@ -680,6 +686,16 @@ final class DifferentialRevision extends DifferentialDAO
 
   public function setHoldAsDraft($hold) {
     return $this->setProperty(self::PROPERTY_DRAFT_HOLD, $hold);
+  }
+
+  public function getDiscardDraftComments() {
+    return $this->getProperty(self::PROPERTY_DISCARD_DRAFT_COMMENTS, false);
+  }
+
+  public function setDiscardDraftComments($discard) {
+    return $this->setProperty(
+      self::PROPERTY_DISCARD_DRAFT_COMMENTS,
+      $discard);
   }
 
   public function getShouldBroadcast() {

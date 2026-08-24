@@ -18,6 +18,8 @@ abstract class PhabricatorApplicationTransactionComment
   protected $contentSource;
   protected $isDeleted = 0;
 
+  const DELETED_DISCARDED = 3;
+
   private $oldComment = self::ATTACHABLE;
 
   abstract public function getApplicationTransactionObject();
@@ -85,6 +87,23 @@ abstract class PhabricatorApplicationTransactionComment
   public function setIsRemoved($removed) {
     if ($removed) {
       $this->setIsDeleted(2);
+    } else {
+      $this->setIsDeleted(0);
+    }
+    return $this;
+  }
+
+  /**
+   * Whether the comment was discarded when its object published.
+   * @return bool True if the comment was discarded.
+   */
+  public function getIsDiscarded() {
+    return ($this->getIsDeleted() == self::DELETED_DISCARDED);
+  }
+
+  public function setIsDiscarded($discarded) {
+    if ($discarded) {
+      $this->setIsDeleted(self::DELETED_DISCARDED);
     } else {
       $this->setIsDeleted(0);
     }

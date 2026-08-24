@@ -401,6 +401,141 @@ final class DifferentialTransactionEditor
 
     $xactions = $this->updateReviewStatus($object, $xactions);
     $this->markReviewerComments($object, $xactions);
+    $xactions = $this->recordSeededDiscardSetting($object, $xactions);
+    $xactions = $this->discardDraftComments($object, $xactions);
+
+    return $xactions;
+  }
+
+  /**
+   * Say on the timeline that a new draft will discard its comments.
+   *
+   * A revision seeded from the author's setting is created with the property
+   * already set, so nothing on the timeline tells a reader that the draft
+   * conversation is going to vanish when it publishes.
+   */
+  private function recordSeededDiscardSetting(
+    DifferentialRevision $revision,
+    array $xactions) {
+
+    if (!$this->getIsNewObject()) {
+      return $xactions;
+    }
+
+    if (!$revision->getDiscardDraftComments()) {
+      return $xactions;
+    }
+
+    // A revision which publishes as it is created has no draft phase to
+    // describe.
+    if ($revision->getShouldBroadcast()) {
+      return $xactions;
+    }
+
+    $set_type =
+      DifferentialRevisionDiscardDraftCommentsTransaction::TRANSACTIONTYPE;
+    $toggle_type =
+      DifferentialRevisionToggleDiscardCommentsTransaction::TRANSACTIONTYPE;
+
+    foreach ($xactions as $xaction) {
+      $type = $xaction->getTransactionType();
+      if ($type === $set_type || $type === $toggle_type) {
+        // The author asked for this explicitly, so it already reads on the
+        // timeline.
+        return $xactions;
+      }
+    }
+
+    $xaction = id(new DifferentialTransaction())
+      ->setTransactionType($set_type)
+      ->setOldValue(false)
+      ->setNewValue(true);
+
+    $xactions[] = $this->populateTransaction($revision, $xaction)->save();
+
+    return $xactions;
+  }
+
+  /**
+   * Clear the draft-phase conversation when a revision publishes.
+   *
+   * A draft never broadcasts, so nothing discarded here was ever mailed or
+   * published to a feed. Doing this to a revision that had already published
+   * would retract comments people already received, so this only runs on the
+   * transition into broadcasting.
+   */
+  private function discardDraftComments(
+    DifferentialRevision $revision,
+    array $xactions) {
+
+    if ($this->wasBroadcasting) {
+      return $xactions;
+    }
+
+    if (!$revision->getShouldBroadcast()) {
+      return $xactions;
+    }
+
+    if (!$revision->getDiscardDraftComments()) {
+      return $xactions;
+    }
+
+    $discard_types = array(
+      PhabricatorTransactions::TYPE_COMMENT,
+      PhabricatorTransactions::TYPE_INLINESTATE,
+      DifferentialTransaction::TYPE_INLINE,
+    );
+    $discard_types = array_fuse($discard_types);
+
+    // Transactions in this edit are the act of publishing, not the draft
+    // conversation being cleared, so they survive.
+    $keep_phids = array_fuse(array_filter(mpull($xactions, 'getPHID')));
+
+    $old_xactions = id(new DifferentialTransactionQuery())
+      ->setViewer($this->getActor())
+      ->withObjectPHIDs(array($revision->getPHID()))
+      ->execute();
+
+    $comment_count = 0;
+    foreach ($old_xactions as $old_xaction) {
+      if (isset($keep_phids[$old_xaction->getPHID()])) {
+        continue;
+      }
+
+      if (!isset($discard_types[$old_xaction->getTransactionType()])) {
+        continue;
+      }
+
+      if ($old_xaction->getMetadataValue('discarded.comment')) {
+        continue;
+      }
+
+      // A comment an administrator already removed keeps that state: it is
+      // not rendering anyway, and overwriting it would lose the reason it
+      // went away. Its timeline entry is still draft-phase noise, so the
+      // transaction is hidden either way.
+      $comment = $old_xaction->getComment();
+      if ($comment && !$comment->getIsDeleted()) {
+        $comment->setIsDiscarded(true)->save();
+        $comment_count++;
+      }
+
+      $old_xaction
+        ->setMetadataValue('discarded.comment', true)
+        ->save();
+    }
+
+    if (!$comment_count) {
+      return $xactions;
+    }
+
+    $xaction = id(new DifferentialTransaction())
+      ->setTransactionType(
+        DifferentialRevisionCommentsDiscardedTransaction::TRANSACTIONTYPE)
+      ->setOldValue(null)
+      ->setNewValue($comment_count);
+
+    $xactions[] = $this->populateTransaction($revision, $xaction)->save();
 
     return $xactions;
   }

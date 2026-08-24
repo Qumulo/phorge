@@ -26,6 +26,12 @@ final class PhabricatorApplicationTransactionCommentRawController
       return new Aphront400Response();
     }
 
+    if ($xaction->getComment()->getIsDiscarded()) {
+      // You can't view a raw comment that was discarded when its object
+      // published: the whole point was to take it out of circulation.
+      return new Aphront400Response();
+    }
+
     $obj_phid = $xaction->getObjectPHID();
     $obj_handle = id(new PhabricatorHandleQuery())
       ->setViewer($viewer)

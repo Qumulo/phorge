@@ -101,10 +101,14 @@ abstract class PhabricatorDiffInlineCommentQuery
       $clauses = array();
 
       if ($show_published) {
+        // Published comments are visible unless they were discarded when the
+        // object published: those must not render on the diff at all.
         $clauses[] = qsprintf(
           $conn,
-          '%T.transactionPHID IS NOT NULL',
-          $alias);
+          '%T.transactionPHID IS NOT NULL AND %T.isDeleted != %d',
+          $alias,
+          $alias,
+          PhabricatorApplicationTransactionComment::DELETED_DISCARDED);
       }
 
       if ($show_publishable) {

@@ -36,7 +36,6 @@ final class QumuloReviewStacksPanelType
     return 'fa-align-left';
   }
 
-
   public function getPanelTypeDescription() {
     return pht(
       'Show patch stacks waiting on your review, collapsed to the first '.
@@ -295,7 +294,7 @@ final class QumuloReviewStacksPanelType
         continue;
       }
 
-      if (!$this->isOutstanding($reviewer)) {
+      if (!$this->isOutstanding($revision, $reviewer)) {
         continue;
       }
 
@@ -318,23 +317,41 @@ final class QumuloReviewStacksPanelType
 
   /**
    * Is this reviewer still expected to act on the revision?
+   *
+   * This defers to @{class:DifferentialReviewer}, which decides whether a
+   * review still stands against the *current* diff, rather than reading the
+   * stored status directly. That matters because the stored status stays
+   * "rejected" forever: a rejection only counts while it applies to the diff
+   * that is currently up, so updating the diff clears it and the revision
+   * needs review again. Accepts work the other way around and survive updates
+   * while "differential.sticky-accept" is on.
    */
-  private function isOutstanding(DifferentialReviewer $reviewer) {
-    switch ($reviewer->getReviewerStatus()) {
-      case DifferentialReviewerStatus::STATUS_ADDED:
-      case DifferentialReviewerStatus::STATUS_COMMENTED:
-      case DifferentialReviewerStatus::STATUS_BLOCKING:
-      case DifferentialReviewerStatus::STATUS_ACCEPTED_OLDER:
-      case DifferentialReviewerStatus::STATUS_REJECTED_OLDER:
-        return true;
-      case DifferentialReviewerStatus::STATUS_ACCEPTED:
-        // "Request Review" voids an acceptance, which puts the revision back
-        // in front of the reviewer.
-        return (bool)$reviewer->getVoidedPHID();
-      default:
-        // Already rejected, or resigned: the ball is not in our court.
-        return false;
+  private function isOutstanding(
+    DifferentialRevision $revision,
+    DifferentialReviewer $reviewer) {
+
+    // Resigning removes someone from the review for good.
+    if ($reviewer->isResigned()) {
+      return false;
     }
+
+    $diff_phid = $revision->getActiveDiffPHID();
+
+    // A rejection which still applies to the current diff means the ball is in
+    // the author's court, not ours. A rejection of an older diff has been
+    // cleared by the update, so the review is outstanding again.
+    if ($reviewer->isRejected($diff_phid)) {
+      return false;
+    }
+
+    // An accept counts against the current diff, and keeps counting across
+    // updates when accepts are sticky. An accept voided by "Request Review"
+    // does not count either way, so the review comes back.
+    if ($reviewer->isAccepted($diff_phid)) {
+      return false;
+    }
+
+    return true;
   }
 
   /**

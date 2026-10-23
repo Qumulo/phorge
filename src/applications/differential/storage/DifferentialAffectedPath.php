@@ -14,11 +14,9 @@ final class DifferentialAffectedPath extends DifferentialDAO {
     return array(
       self::CONFIG_TIMESTAMPS => false,
       self::CONFIG_COLUMN_SCHEMA => array(
-        'id' => null,
         'repositoryID' => 'id?',
       ),
       self::CONFIG_KEY_SCHEMA => array(
-        'PRIMARY' => null,
         'revisionID' => array(
           'columns' => array('revisionID'),
         ),

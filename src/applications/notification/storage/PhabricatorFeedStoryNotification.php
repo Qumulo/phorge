@@ -17,8 +17,7 @@ final class PhabricatorFeedStoryNotification extends PhabricatorFeedDAO {
         'id' => null,
       ),
       self::CONFIG_KEY_SCHEMA => array(
-        'PRIMARY' => null,
-        'userPHID' => array(
+        'PRIMARY' => array(
           'columns' => array('userPHID', 'chronologicalKey'),
           'unique' => true,
         ),

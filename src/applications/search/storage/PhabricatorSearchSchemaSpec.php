@@ -12,7 +12,12 @@ final class PhabricatorSearchSchemaSpec
       array(
         'value' => 'sort32',
       ),
-      array());
+      array(
+        'PRIMARY' => array(
+          'columns' => array('value'),
+          'unique' => true,
+        ),
+      ));
   }
 
 }

@@ -36,6 +36,42 @@ Phorge. For details, see
 @{article:Cluster: Partitioning and Advanced Configuration}.
 
 
+Group Replication and Galera
+============================
+
+Every Phorge table has a primary key, so Phorge tables can be replicated by
+MySQL Group Replication or Galera, which reject or handle poorly tables without
+one. This is not a multi-master configuration from Phorge's point of view:
+Phorge still sends all writes to a single database host, so point it at the
+current writer (or a proxy which does so).
+
+Installs which ran older versions and relied on MySQL generating invisible
+primary keys (`sql_generate_invisible_primary_key`) have a `my_row_id` column
+on tables which previously had no primary key. Before running `bin/storage
+upgrade`, stop Phorge and daemons and drop it from each of these tables. MySQL
+only allows this if you turn the option off for your session first:
+
+  ```lang=sql
+  SET SESSION sql_generate_invisible_primary_key = OFF;
+  ALTER TABLE <table> DROP PRIMARY KEY, DROP COLUMN my_row_id;
+  ```
+
+The tables are:
+
+  - `differential_affectedpath`
+  - `differential_revisionhash`
+  - `feed_storynotification`
+  - `feed_storyreference`
+  - `repository_symbol`
+  - `stopwords`
+  - `user_nametoken`
+
+Phorge keeps a stopword list in `phabricator_search.stopwords`. If you point
+`innodb_ft_server_stopword_table` at it, set the option in the configuration
+of every cluster member: it is a per-server option, and the table replicating
+does not apply it.
+
+
 Setting up MySQL Replication
 ============================
 

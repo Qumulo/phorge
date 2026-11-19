@@ -1,0 +1,2 @@
+ALTER TABLE {$NAMESPACE}_differential.differential_revisionhash
+  ADD id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;

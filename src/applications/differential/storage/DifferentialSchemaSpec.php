@@ -35,11 +35,16 @@ final class DifferentialSchemaSpec extends PhabricatorConfigSchemaSpec {
       id(new DifferentialRevision())->getApplicationName(),
       ArcanistDifferentialRevisionHash::TABLE_NAME,
       array(
+        'id' => 'auto',
         'revisionID' => 'id',
         'type' => 'bytes4',
         'hash' => 'bytes40',
       ),
       array(
+        'PRIMARY' => array(
+          'columns' => array('id'),
+          'unique' => true,
+        ),
         'type' => array(
           'columns' => array('type', 'hash'),
         ),

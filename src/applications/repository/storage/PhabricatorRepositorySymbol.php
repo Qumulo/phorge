@@ -27,7 +27,6 @@ final class PhabricatorRepositorySymbol extends PhabricatorRepositoryDAO {
     return array(
       self::CONFIG_TIMESTAMPS => false,
       self::CONFIG_COLUMN_SCHEMA => array(
-        'id' => null,
         'symbolContext' => 'text128',
         'symbolName' => 'text128',
         'symbolType' => 'text12',
@@ -35,7 +34,6 @@ final class PhabricatorRepositorySymbol extends PhabricatorRepositoryDAO {
         'lineNumber' => 'uint32',
       ),
       self::CONFIG_KEY_SCHEMA => array(
-        'PRIMARY' => null,
         'symbolName' => array(
           'columns' => array('symbolName'),
         ),

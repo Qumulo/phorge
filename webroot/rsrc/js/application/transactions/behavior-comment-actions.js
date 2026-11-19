@@ -29,9 +29,24 @@ JX.behavior('comment-actions', function(config) {
     action_node.value = '+';
 
     if (option) {
-      add_row(option);
+      keep_submit_in_place(function() {
+        add_row(option);
+      });
     }
   });
+
+  // Action rows are inserted above the comment text area, so adding or
+  // removing one would move the "Submit" button. Scroll by the same amount
+  // instead, so the button stays where the user's pointer already is.
+  function keep_submit_in_place(change_rows) {
+    var button_node = JX.DOM.find(form_node, 'button', 'submit-transactions');
+    var old_top = button_node.getBoundingClientRect().top;
+
+    change_rows();
+
+    var new_top = button_node.getBoundingClientRect().top;
+    window.scrollBy(0, new_top - old_top);
+  }
 
   function find_option(key) {
     var options = action_node.options;
@@ -219,7 +234,9 @@ JX.behavior('comment-actions', function(config) {
         return;
       }
 
-      remove_action(action.key);
+      keep_submit_in_place(function() {
+        remove_action(action.key);
+      });
     });
 
     rows[action.key] = {
@@ -230,7 +247,9 @@ JX.behavior('comment-actions', function(config) {
 
     JX.DOM.listen(remove, 'click', null, function(e) {
       e.kill();
-      remove_action(action.key);
+      keep_submit_in_place(function() {
+        remove_action(action.key);
+      });
     });
 
     place_node.parentNode.insertBefore(node, place_node);

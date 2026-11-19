@@ -99,10 +99,14 @@ An example of such usage can be found in column
 Primary Keys
 ============
 
-Most tables have an auto-increment column named `id`. Adding an ID column is
-appropriate for most tables (even tables that have another natural unique key),
-as it improves consistency and makes it easier to perform generic operations
-on objects.
+Every table must have a primary key. Most tables have an auto-increment column
+named `id`. Adding an ID column is appropriate for most tables (even tables that
+have another natural unique key), as it improves consistency and makes it easier
+to perform generic operations on objects. Tables with a natural unique key may
+use it as the primary key instead.
+
+Tables without a primary key can not be used with MySQL Group Replication or
+Galera. See @{article:Cluster: Databases}.
 
 For example, @{class:LiskMigrationIterator} allows you to very easily apply a
 migration to a table using a constant amount of memory provided the table has
